@@ -1,6 +1,7 @@
 package mqttinflux
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,6 +25,8 @@ func startInflux(config Config) error {
 	influxURL = fmt.Sprintf("http://%v:%v/write?db=%v",
 		config.InfluxHost, config.InfluxPort, config.InfluxDB)
 
+	log.Printf("Influx URL: %v", influxURL)
+
 	go work()
 	return nil
 }
@@ -36,27 +39,29 @@ func submitMeasurement(m *Measurement) {
 	influxQueue <- m
 }
 
-func send(m *Measurement) {
+func send(m *Measurement) error {
 	err := m.Validate()
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	body := strings.NewReader(m.Format())
+	body := strings.NewReader(m.Format() + "\n")
 	req, err := http.NewRequest("POST", influxURL, body)
 	if err != nil {
-		log.Printf("ERROR: %v", err)
-		return
+		return err
 	}
 	req.SetBasicAuth(influxUser, influxPass)
 
 	res, err := influxClient.Do(req)
 	if err != nil {
-		log.Printf("ERROR: %v", err)
-		return
+		return err
 	}
-	log.Println(res)
+
+	if res.StatusCode == 200 || res.StatusCode == 204 {
+		return nil
+	} else {
+		return errors.New(fmt.Sprintf("Got HTTP %v from InfluxDB", res.Status))
+	}
 }
 
 func work() {
@@ -64,7 +69,10 @@ func work() {
 		measurement, more := <-influxQueue
 		if more {
 			log.Println(measurement.Format())
-			//send(measurement)
+			err := send(measurement)
+			if err != nil {
+				log.Printf("ERROR sending measurement: %v", err)
+			}
 		}
 	}
 }
