@@ -107,7 +107,7 @@ func (s *Subscription) Handle(topic string, payload string) error {
         if err != nil {
             return err
         }
-        m.AddTag(tag, tagValue)
+        m.Tag(tag, tagValue)
     }
 
     submitMeasurement(&m)

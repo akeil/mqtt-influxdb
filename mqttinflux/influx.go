@@ -36,7 +36,7 @@ func send(m *Measurement) {
     //TODO: check Measure for completeness?
     // - measurement name not empty
     // at least one value
-    
+
     log.Printf("Influx send %v", m.Format())
     body := strings.NewReader(m.Format())
     req, err := http.NewRequest("POST", influxURL, body)
@@ -81,12 +81,8 @@ func NewMeasurement(name string) Measurement {
     return m
 }
 
-func (m *Measurement) AddTag(name, value string) {
+func (m *Measurement) Tag(name, value string) {
     m.Tags[name] = value
-}
-
-func (m *Measurement) AddValue(name, value string) {
-    m.Values[name] = value
 }
 
 func (m *Measurement) SetValue(value string) {
