@@ -17,21 +17,25 @@ var influxPass string
 func startInflux(config Config) error {
     influxUser = config.InfluxUser
     influxPass = config.InfluxPass
-    influxURL = fmt.Sprintf("http://%v:%v/write", config.InfluxHost, config.InfluxPort)
+    influxURL = fmt.Sprintf("http://%v:%v/write?db=%v",
+        config.InfluxHost, config.InfluxPort, config.InfluxDB)
 
     go work()
     return nil
 }
 
 func stopInflux() {
-    // TODO stop worker
+    // TODO stop worker - opt: wait for complete
 }
 
-func send(measurement *Measurement) {
-    // pattern:
-    // <measurement>,<tag>=<value>[,<tagN>=<valueN>] value=<value> <timestamp>
-    s := ""
-    body := strings.NewReader(s)  // io.Reader
+func submitMeasurement(m *Measurement) {
+    influxQueue <- m
+}
+
+func send(m *Measurement) {
+    //TODO: check message for completeness?
+    log.Printf("Influx send %v", m.Format())
+    body := strings.NewReader(m.Format())
     req, err := http.NewRequest("POST", influxURL, body)
     if err != nil {
         log.Printf("ERROR: %v", err)
@@ -51,13 +55,68 @@ func work() {
     for {
         measurement, more := <-influxQueue
         if more {
-            send(measurement)
+            log.Println(measurement.Format())
+            //send(measurement)
         }
     }
 }
 
 type Measurement struct {
     Name string
-    Value string
     Timestamp time.Time
+    Values map[string]string
+    Tags map[string]string
+}
+
+func NewMeasurement(name string) Measurement {
+    m := Measurement{
+        Name: name,
+        Timestamp: time.Now(),
+        Values: make(map[string]string, 0),
+        Tags: make(map[string]string, 0),
+    }
+    return m
+}
+
+func (m *Measurement) AddTag(name, value string) {
+    m.Tags[name] = value
+}
+
+func (m *Measurement) AddValue(name, value string) {
+    m.Values[name] = value
+}
+
+func (m *Measurement) SetValue(value string) {
+    m.Values["value"] = value
+}
+
+func (m *Measurement) Format() string {
+    // pattern:
+    // <measurement>[,<tag_key>=<tag_value>[,<tag_key>=<tag_value>]] <field_key>=<field_value>[,<field_key>=<field_value>] [<timestamp>]
+    // see:
+    // https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_reference/
+
+    // <measurement>
+    s := m.Name
+
+    // ,<tag_key>=<tag_value>
+    for tagname, tagvalue := range m.Tags {
+        s += fmt.Sprintf(",%v=%v", tagname, tagvalue)
+    }
+
+    // <field_key>=<field_value>[,<field_key>=<field_value>]
+    s += " "
+    fieldCounter := 0
+    fieldSeparator := ""
+    for fieldName, fieldValue := range m.Values {
+        if fieldCounter > 0 {
+            fieldSeparator = ","
+        }
+        s += fmt.Sprintf("%v%v=%v", fieldSeparator, fieldName, fieldValue)
+        fieldCounter++
+    }
+
+    //[ <timestamp>]
+    s += fmt.Sprintf(" %d", m.Timestamp.UnixNano())
+    return s
 }

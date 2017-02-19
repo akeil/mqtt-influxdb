@@ -11,6 +11,7 @@ type Config struct {
     InfluxPort int `json:"influxPort"`
     InfluxUser string `json:"influxUser"`
     InfluxPass string `json:"influxPass"`
+    InfluxDB string `json:"InfluxDB"`
 }
 
 func readConfig() (Config, error) {
@@ -20,6 +21,7 @@ func readConfig() (Config, error) {
         MQTTPort: 1883,
         InfluxHost: "box",
         InfluxPort: 8086,
+        InfluxDB: "test",
         InfluxUser: "",
         InfluxPass: "",
     }
@@ -42,10 +44,25 @@ func loadSubscriptions() ([]Subscription, error) {
 
 type Subscription struct {
     Topic string `json:"topic"`
+
 }
 
 func (s *Subscription) Handle(topic string, payload string) {
     log.Printf("Subscription: %v", s)
     log.Printf("Handle %v: %v", topic, payload)
 
+    m := NewMeasurement(s.MeasurementName())
+    m.SetValue(s.Value())
+
+    // tags
+
+    submitMeasurement(&m)
+}
+
+func (s *Subscription) MeasurementName() string {
+    return "foo"
+}
+
+func (s *Subscription) Value() string {
+    return "222"
 }
