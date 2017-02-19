@@ -1,0 +1,5 @@
+package mqttinflux
+
+func Test() {
+    
+}
