@@ -1,16 +1,14 @@
 package main
 
-
 import (
-    "log"
+	"log"
 
-    "akeil.net/akeil/mqtt-influxdb/mqttinflux"
+	"akeil.net/akeil/mqtt-influxdb/mqttinflux"
 )
 
-
 func main() {
-    err := mqttinflux.Run()
-    if err != nil {
-        log.Fatal(err)
-    }
+	err := mqttinflux.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

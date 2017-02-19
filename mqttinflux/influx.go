@@ -1,11 +1,11 @@
 package mqttinflux
 
 import (
-    "fmt"
-    "log"
-    "net/http"
-    "regexp"
-    "strings"
+	"fmt"
+	"log"
+	"net/http"
+	"regexp"
+	"strings"
 )
 
 var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.]+$")
@@ -19,53 +19,53 @@ var influxUser string
 var influxPass string
 
 func startInflux(config Config) error {
-    influxUser = config.InfluxUser
-    influxPass = config.InfluxPass
-    influxURL = fmt.Sprintf("http://%v:%v/write?db=%v",
-        config.InfluxHost, config.InfluxPort, config.InfluxDB)
+	influxUser = config.InfluxUser
+	influxPass = config.InfluxPass
+	influxURL = fmt.Sprintf("http://%v:%v/write?db=%v",
+		config.InfluxHost, config.InfluxPort, config.InfluxDB)
 
-    go work()
-    return nil
+	go work()
+	return nil
 }
 
 func stopInflux() {
-    // TODO stop worker - opt: wait for complete
+	// TODO stop worker - opt: wait for complete
 }
 
 func submitMeasurement(m *Measurement) {
-    influxQueue <- m
+	influxQueue <- m
 }
 
 func send(m *Measurement) {
-    err := m.Validate()
-    if err != nil {
-        log.Println(err)
-        return
-    }
+	err := m.Validate()
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-    log.Printf("Influx send %v", m.Format())
-    body := strings.NewReader(m.Format())
-    req, err := http.NewRequest("POST", influxURL, body)
-    if err != nil {
-        log.Printf("ERROR: %v", err)
-        return
-    }
-    req.SetBasicAuth(influxUser, influxPass)
+	log.Printf("Influx send %v", m.Format())
+	body := strings.NewReader(m.Format())
+	req, err := http.NewRequest("POST", influxURL, body)
+	if err != nil {
+		log.Printf("ERROR: %v", err)
+		return
+	}
+	req.SetBasicAuth(influxUser, influxPass)
 
-    res, err := influxClient.Do(req)
-    if err != nil {
-        log.Printf("ERROR: %v", err)
-        return
-    }
-    log.Println(res)
+	res, err := influxClient.Do(req)
+	if err != nil {
+		log.Printf("ERROR: %v", err)
+		return
+	}
+	log.Println(res)
 }
 
 func work() {
-    for {
-        measurement, more := <-influxQueue
-        if more {
-            log.Println(measurement.Format())
-            //send(measurement)
-        }
-    }
+	for {
+		measurement, more := <-influxQueue
+		if more {
+			log.Println(measurement.Format())
+			//send(measurement)
+		}
+	}
 }
