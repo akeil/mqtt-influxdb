@@ -43,7 +43,6 @@ func send(m *Measurement) {
 		return
 	}
 
-	log.Printf("Influx send %v", m.Format())
 	body := strings.NewReader(m.Format())
 	req, err := http.NewRequest("POST", influxURL, body)
 	if err != nil {

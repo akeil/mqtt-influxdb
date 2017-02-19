@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"text/template"
 	"time"
@@ -59,9 +58,6 @@ func (s *Subscription) parseTemplates() error {
 }
 
 func (s *Subscription) Handle(topic string, payload string) error {
-	log.Printf("Subscription: %v", s)
-	log.Printf("Handle %v: %v", topic, payload)
-
 	err := s.parseTemplates()
 	if err != nil {
 		return err

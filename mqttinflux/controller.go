@@ -126,18 +126,6 @@ func loadSubscriptions() ([]Subscription, error) {
 		}
 	}
 
-	/*
-	   tags := make(map[string]string)
-	   tags["simple"] = "tag1"
-	   tags["template"] = "{{.Part 1}}-device"
-	   s := Subscription{
-	       Topic: "test/foo",
-	       Measurement: "test_{{.Part 1}}",
-	       Tags: tags,
-	       Conversion: Conversion{Kind:"integer",},
-	   }
-	   subs = append(subs, s)
-	*/
 	return subs, nil
 }
 
