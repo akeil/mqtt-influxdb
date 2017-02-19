@@ -4,6 +4,7 @@ import (
     "encoding/json"
     "log"
     "io"
+    "io/ioutil"
     "os"
     "os/signal"
     "os/user"
@@ -92,4 +93,73 @@ func readConfig() (Config, error) {
 
     }
     return config, nil
+}
+
+func loadSubscriptions() ([]Subscription, error) {
+    subs := make([]Subscription, 0)
+
+    currentUser, err := user.Current()
+	if err != nil {
+		return subs, err
+	}
+    dirnames := []string{
+        "/etc/" + APPNAME + ".d",
+        filepath.Join(currentUser.HomeDir, ".config", APPNAME + ".d"),
+    }
+
+    for _, dirname := range dirnames {
+        files, err := ioutil.ReadDir(dirname)
+        if os.IsNotExist(err) {
+            continue
+        } else if err != nil {
+            log.Println(err)
+            return subs, err
+        }
+        for _, file := range files {
+            fullPath := filepath.Join(dirname, file.Name())
+            results, err := loadSubscriptionFile(fullPath)
+            if err != nil {
+                return subs, err
+            }
+            for _, s := range results {
+                subs = append(subs, s)
+            }
+        }
+    }
+
+    /*
+    tags := make(map[string]string)
+    tags["simple"] = "tag1"
+    tags["template"] = "{{.Part 1}}-device"
+    s := Subscription{
+        Topic: "test/foo",
+        Measurement: "test_{{.Part 1}}",
+        Tags: tags,
+        Conversion: Conversion{Kind:"integer",},
+    }
+    subs = append(subs, s)
+    */
+    return subs, nil
+}
+
+func loadSubscriptionFile(path string) ([]Subscription, error) {
+    subs := make([]Subscription, 0)
+
+    f, err := os.Open(path)
+    if err != nil {
+        return subs, err
+    }
+    defer f.Close()
+
+    decoder := json.NewDecoder(f)
+    for {
+        if err := decoder.Decode(&subs); err == io.EOF {
+            break
+        } else if err != nil {
+            return subs, err
+        }
+    }
+
+    log.Printf("Loaded %d subscriptions from %v", len(subs), path)
+    return subs, nil
 }

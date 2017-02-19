@@ -22,23 +22,6 @@ type Config struct {
     InfluxDB string `json:"InfluxDB"`
 }
 
-func loadSubscriptions() ([]Subscription, error) {
-    subs := make([]Subscription, 0)
-
-    tags := make(map[string]string)
-    tags["simple"] = "tag1"
-    tags["template"] = "{{.Part 1}}-device"
-    s := Subscription{
-        Topic: "test/foo",
-        Measurement: "test_{{.Part 1}}",
-        Tags: tags,
-        Conversion: Conversion{Kind:"integer",},
-    }
-    subs = append(subs, s)
-
-    return subs, nil
-}
-
 // Subscription ---------------------------------------------------------------
 
 type Subscription struct {

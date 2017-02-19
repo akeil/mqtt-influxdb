@@ -46,7 +46,7 @@ func Float(raw string, params *Conversion) (string, error) {
 
     template := "%f"
     if params.Precision != 0 {
-        template = fmt.Sprintf(".%d%%f", params.Precision)
+        template = fmt.Sprintf("%%.%df", params.Precision)
     }
     return fmt.Sprintf(template, parsed), nil
 }
