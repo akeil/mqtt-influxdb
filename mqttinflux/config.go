@@ -38,9 +38,13 @@ func readConfig() (Config, error) {
 func loadSubscriptions() ([]Subscription, error) {
     subs := make([]Subscription, 0)
 
+    tags := make(map[string]string)
+    tags["simple"] = "tag1"
+    tags["template"] = "{{.Part 1}}-device"
     s := Subscription{
         Topic: "test/foo",
         Measurement: "test_{{.Part 1}}",
+        Tags: tags,
     }
     subs = append(subs, s)
 
@@ -50,7 +54,7 @@ func loadSubscriptions() ([]Subscription, error) {
 type Subscription struct {
     Topic string `json:"topic"`
     Measurement string `json:"measurement"`
-
+    Tags map[string]string `json:"tags"`
     cachedTemplates map[string]*template.Template `json:"-"`
 }
 
@@ -59,10 +63,14 @@ func (s *Subscription) parseTemplates() error {
         return nil
     }
 
-    count := 1
+    count := 1 + len(s.Tags)
     raw := make(map[string]string, count)
     s.cachedTemplates = make(map[string]*template.Template, count)
     raw["measurement"] = s.Measurement
+
+    for k, v := range s.Tags {
+        raw["tag." + k] = v
+    }
 
     for name, text := range raw {
         t := template.New(name)
@@ -94,7 +102,13 @@ func (s *Subscription) Handle(topic string, payload string) error {
 
     m.SetValue(payload)
 
-    // tags
+    for tag, _ := range s.Tags {
+        tagValue, err := s.fillTemplate("tag." + tag, ctx)
+        if err != nil {
+            return err
+        }
+        m.AddTag(tag, tagValue)
+    }
 
     submitMeasurement(&m)
     return nil
