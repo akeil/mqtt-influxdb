@@ -3,9 +3,11 @@ package mqttinflux
 import (
     "bytes"
     "errors"
+    "fmt"
     "log"
     "strings"
     "text/template"
+    "time"
 )
 
 // Config ---------------------------------------------------------------------

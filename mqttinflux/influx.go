@@ -1,13 +1,11 @@
 package mqttinflux
 
 import (
-    "errors"
     "fmt"
     "log"
     "net/http"
     "regexp"
     "strings"
-    "time"
 )
 
 var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.]+$")
