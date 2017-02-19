@@ -1,12 +1,18 @@
 package mqttinflux
 
 import (
+    "errors"
     "fmt"
     "log"
     "net/http"
+    "regexp"
     "strings"
     "time"
 )
+
+var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.]+$")
+var fieldPattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.]+$")
+var tagPattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.]+$")
 
 var influxQueue = make(chan *Measurement, 32)
 var influxClient http.Client
@@ -33,9 +39,11 @@ func submitMeasurement(m *Measurement) {
 }
 
 func send(m *Measurement) {
-    //TODO: check Measure for completeness?
-    // - measurement name not empty
-    // at least one value
+    err := m.Validate()
+    if err != nil {
+        log.Println(err)
+        return
+    }
 
     log.Printf("Influx send %v", m.Format())
     body := strings.NewReader(m.Format())
@@ -118,4 +126,28 @@ func (m *Measurement) Format() string {
     //[ <timestamp>]
     s += fmt.Sprintf(" %d", m.Timestamp.UnixNano())
     return s
+}
+
+func (m *Measurement) Validate() error {
+    if !measurementPattern.MatchString(m.Name) {
+        return errors.New("Invalid measurement name")
+    }
+
+    if len(m.Values) == 0 {
+        return errors.New("At least one value is required")
+    }
+
+    for fieldName, _ := range m.Values {
+        if !fieldPattern.MatchString(fieldName) {
+            return errors.New("Invalid field name")
+        }
+    }
+
+    for tagName, _ := range m.Tags {
+        if !tagPattern.MatchString(tagName) {
+            return errors.New("Invalid tag name")
+        }
+    }
+
+    return nil
 }
