@@ -8,6 +8,8 @@ import (
     "text/template"
 )
 
+// Config ---------------------------------------------------------------------
+
 type Config struct {
     MQTTHost string `json:"MQTTHost"`
     MQTTPort int `json:"MQTTPort"`
@@ -50,6 +52,8 @@ func loadSubscriptions() ([]Subscription, error) {
 
     return subs, nil
 }
+
+// Subscription ---------------------------------------------------------------
 
 type Subscription struct {
     Topic string `json:"topic"`
@@ -128,6 +132,8 @@ func (s *Subscription) fillTemplate(name string, ctx TemplateContext) (string, e
     return buf.String(), nil
 }
 
+// Template -------------------------------------------------------------------
+
 type TemplateContext struct {
     Topic string
     Payload string
@@ -148,4 +154,86 @@ func (ctx *TemplateContext) Part(index int) (string, error) {
     }
 
     return ctx.Parts[index], nil
+}
+
+// Measurement ----------------------------------------------------------------
+
+type Measurement struct {
+    Name string
+    Timestamp time.Time
+    Values map[string]string
+    Tags map[string]string
+}
+
+func NewMeasurement(name string) Measurement {
+    m := Measurement{
+        Name: name,
+        Timestamp: time.Now(),
+        Values: make(map[string]string, 0),
+        Tags: make(map[string]string, 0),
+    }
+    return m
+}
+
+func (m *Measurement) Tag(name, value string) {
+    m.Tags[name] = value
+}
+
+func (m *Measurement) SetValue(value string) {
+    m.Values["value"] = value
+}
+
+func (m *Measurement) Format() string {
+    // pattern:
+    // <measurement>[,<tag_key>=<tag_value>[,<tag_key>=<tag_value>]] <field_key>=<field_value>[,<field_key>=<field_value>] [<timestamp>]
+    // see:
+    // https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_reference/
+
+    // <measurement>
+    s := m.Name
+
+    // ,<tag_key>=<tag_value>
+    for tagname, tagvalue := range m.Tags {
+        s += fmt.Sprintf(",%v=%v", tagname, tagvalue)
+    }
+
+    // <field_key>=<field_value>[,<field_key>=<field_value>]
+    s += " "
+    fieldCounter := 0
+    fieldSeparator := ""
+    for fieldName, fieldValue := range m.Values {
+        if fieldCounter > 0 {
+            fieldSeparator = ","
+        }
+        s += fmt.Sprintf("%v%v=%v", fieldSeparator, fieldName, fieldValue)
+        fieldCounter++
+    }
+
+    //[ <timestamp>]
+    s += fmt.Sprintf(" %d", m.Timestamp.UnixNano())
+    return s
+}
+
+func (m *Measurement) Validate() error {
+    if !measurementPattern.MatchString(m.Name) {
+        return errors.New("Invalid measurement name")
+    }
+
+    if len(m.Values) == 0 {
+        return errors.New("At least one value is required")
+    }
+
+    for fieldName, _ := range m.Values {
+        if !fieldPattern.MatchString(fieldName) {
+            return errors.New("Invalid field name")
+        }
+    }
+
+    for tagName, _ := range m.Tags {
+        if !tagPattern.MatchString(tagName) {
+            return errors.New("Invalid tag name")
+        }
+    }
+
+    return nil
 }
