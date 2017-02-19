@@ -33,7 +33,10 @@ func submitMeasurement(m *Measurement) {
 }
 
 func send(m *Measurement) {
-    //TODO: check message for completeness?
+    //TODO: check Measure for completeness?
+    // - measurement name not empty
+    // at least one value
+    
     log.Printf("Influx send %v", m.Format())
     body := strings.NewReader(m.Format())
     req, err := http.NewRequest("POST", influxURL, body)
