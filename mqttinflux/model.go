@@ -22,23 +22,6 @@ type Config struct {
     InfluxDB string `json:"InfluxDB"`
 }
 
-func readConfig() (Config, error) {
-    // init with defaults
-    config := Config{
-        MQTTHost: "box",
-        MQTTPort: 1883,
-        InfluxHost: "box",
-        InfluxPort: 8086,
-        InfluxDB: "test",
-        InfluxUser: "",
-        InfluxPass: "",
-    }
-
-    // TODO: read from JSON file
-
-    return config, nil
-}
-
 func loadSubscriptions() ([]Subscription, error) {
     subs := make([]Subscription, 0)
 
