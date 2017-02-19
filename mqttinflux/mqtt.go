@@ -39,14 +39,22 @@ func disconnectMQTT() {
 }
 
 func subscribeMQTT(subscriptions []Subscription) error {
+    var err error
     qos := byte(0)
     for _, sub := range subscriptions {
         log.Printf("MQTT subscribe to %v", sub.Topic)
         s := sub  // local var for scope
         t := mqttClient.Subscribe(s.Topic, qos, func(c mqtt.Client, m mqtt.Message) {
-            s.Handle(m.Topic(), string(m.Payload()))
+            handlingError := s.Handle(m.Topic(), string(m.Payload()))
+            if handlingError != nil {
+                log.Printf("ERROR handling message %v: %v", m.Topic(), handlingError)
+            }
         })
         t.Wait()  // no timeout
+        err = t.Error()
+        if err != nil {
+            return err
+        }
         mqttSubscriptions = append(mqttSubscriptions, s.Topic)
     }
     return nil

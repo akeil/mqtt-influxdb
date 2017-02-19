@@ -49,6 +49,7 @@ func loadSubscriptions() ([]Subscription, error) {
         Topic: "test/foo",
         Measurement: "test_{{.Part 1}}",
         Tags: tags,
+        Conversion: Conversion{Kind:"integer",},
     }
     subs = append(subs, s)
 
@@ -61,6 +62,7 @@ type Subscription struct {
     Topic string `json:"topic"`
     Measurement string `json:"measurement"`
     Tags map[string]string `json:"tags"`
+    Conversion Conversion `json:"conversion"`
     cachedTemplates map[string]*template.Template `json:"-"`
 }
 
@@ -106,7 +108,11 @@ func (s *Subscription) Handle(topic string, payload string) error {
     }
     m := NewMeasurement(measurementName)
 
-    m.SetValue(payload)
+    converted, err := s.Conversion.Convert(payload)
+    if err != nil {
+        return err
+    }
+    m.SetValue(converted)
 
     for tag, _ := range s.Tags {
         tagValue, err := s.fillTemplate("tag." + tag, ctx)
