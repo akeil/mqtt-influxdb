@@ -1,23 +1,39 @@
 package mqttinflux
 
 import (
+//    "log"
     "os"
     "os/signal"
 )
 
 func Run() error {
-    var config Config
     // setup channel to receive SIGINT (ctrl+c)
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt)
 
-    err := connectMQTT(config)
+    config, err := readConfig()
+    if err != nil {
+        return err
+    }
+
+    subscriptions, err := loadSubscriptions()
+    if err != nil {
+        return err
+    }
+
+    err = startInflux(config)
+    if err != nil {
+        return err
+    }
+    defer stopInflux()
+
+    err = connectMQTT(config)
     if err != nil {
         return err
     }
     defer disconnectMQTT()
 
-    err = subscribeMQTT(config)
+    err = subscribeMQTT(subscriptions)
     if err != nil {
         return err
     }

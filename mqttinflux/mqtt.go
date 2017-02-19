@@ -2,6 +2,7 @@ package mqttinflux
 
 import (
     "fmt"
+    "log"
     "os"
 
     mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -22,28 +23,30 @@ func connectMQTT(config Config) error {
 
     mqttClient = mqtt.NewClient(opts)  // global
 
+    log.Printf("MQTT connect to %v", uri)
     t := mqttClient.Connect()
-    // block or timeout
+    t.Wait()  // no timeout
     return t.Error()
 }
 
 func disconnectMQTT() {
     if mqttClient != nil {
         if mqttClient.IsConnected() {
+            log.Println("MQTT disconnect")
             mqttClient.Disconnect(250)  // 250 millis cleanup time
         }
     }
 }
 
-
-func subscribeMQTT(config Config) error {
+func subscribeMQTT(subscriptions []Subscription) error {
     qos := byte(0)
-    subscriptions := make([]Subscription, 0)
     for _, sub := range subscriptions {
+        log.Printf("MQTT subscribe to %v", sub.Topic)
         s := sub  // local var for scope
-        mqttClient.Subscribe(s.Topic, qos, func(c mqtt.Client, m mqtt.Message) {
+        t := mqttClient.Subscribe(s.Topic, qos, func(c mqtt.Client, m mqtt.Message) {
             s.Handle(m.Topic(), string(m.Payload()))
         })
+        t.Wait()  // no timeout
         mqttSubscriptions = append(mqttSubscriptions, s.Topic)
     }
     return nil
@@ -52,6 +55,7 @@ func subscribeMQTT(config Config) error {
 func unsubscribeMQTT() {
     if mqttClient != nil {
         for _, topic := range mqttSubscriptions {
+            log.Printf("MQTT unsubscribe %v", topic)
             mqttClient.Unsubscribe(topic)
         }
     }
