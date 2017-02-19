@@ -1,7 +1,9 @@
 BINARY = ./cmd/mfx
+BINDIR = bin
 
 build:
-	go build $(BINARY)
+	mkdir -p $(BINDIR)
+	go build -o $(BINDIR)/mfx $(BINARY)
 
 install:
 	go install $(BINARY)
