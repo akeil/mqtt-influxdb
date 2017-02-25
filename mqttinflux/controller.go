@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/signal"
 	"os/user"
@@ -104,7 +103,7 @@ func readConfig() (Config, error) {
 	for _, path := range paths {
 		f, err := os.Open(path)
 		if os.IsNotExist(err) {
-			log.Printf("INFO: no config found at %v", path)
+			LogInfo("No config found at '%v'", path)
 			continue
 		} else if err != nil {
 			return config, err
@@ -141,7 +140,6 @@ func loadSubscriptions() ([]Subscription, error) {
 		if os.IsNotExist(err) {
 			continue
 		} else if err != nil {
-			log.Println(err)
 			return subs, err
 		}
 		for _, file := range files {
@@ -177,6 +175,6 @@ func loadSubscriptionFile(path string) ([]Subscription, error) {
 		}
 	}
 
-	log.Printf("Loaded %d subscriptions from %v", len(subs), path)
+	LogInfo("Loaded %d subscriptions from '%v'", len(subs), path)
 	return subs, nil
 }

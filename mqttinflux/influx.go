@@ -3,7 +3,6 @@ package mqttinflux
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -25,7 +24,7 @@ func startInflux(config Config) error {
 	influxURL = fmt.Sprintf("http://%v:%v/write?db=%v",
 		config.InfluxHost, config.InfluxPort, config.InfluxDB)
 
-	log.Printf("Influx URL: %v", influxURL)
+	logInfluxSettings(influxURL)
 
 	go work()
 	return nil
@@ -60,7 +59,7 @@ func send(m *Measurement) error {
 	if res.StatusCode == 200 || res.StatusCode == 204 {
 		return nil
 	} else {
-		return errors.New(fmt.Sprintf("Got HTTP %v from InfluxDB", res.Status))
+		return errors.New(fmt.Sprintf("Got HTTP %v", res.Status))
 	}
 }
 
@@ -68,11 +67,20 @@ func work() {
 	for {
 		measurement, more := <-influxQueue
 		if more {
-			log.Println(measurement.Format())
 			err := send(measurement)
 			if err != nil {
-				log.Printf("ERROR sending measurement: %v", err)
+				logInfluxSendError(err)
 			}
 		}
 	}
+}
+
+// Logging --------------------------------------------------------------------
+
+func logInfluxSettings(url string) {
+	LogInfo("InfluxDB URL is '%v'", url)
+}
+
+func logInfluxSendError(err error) {
+	LogError("InfluxDB failed to send measurement: %v", err)
 }
