@@ -12,6 +12,7 @@ import (
 // Config ---------------------------------------------------------------------
 
 type Config struct {
+	PidFile    string `json:"pidfile"`
 	MQTTHost   string `json:"MQTTHost"`
 	MQTTPort   int    `json:"MQTTPort"`
 	InfluxHost string `json:"influxHost"`

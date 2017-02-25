@@ -2,6 +2,7 @@ package mqttinflux
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -21,6 +22,14 @@ func Run() error {
 	config, err := readConfig()
 	if err != nil {
 		return err
+	}
+
+	if config.PidFile != "" {
+		err = writePidFile(config.PidFile)
+		if err != nil {
+			return err
+		}
+		defer removePidFile(config.PidFile)
 	}
 
 	subscriptions, err := loadSubscriptions()
@@ -51,9 +60,30 @@ func Run() error {
 	return nil
 }
 
+func writePidFile(path string) error {
+	pid := os.Getpid()
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(fmt.Sprintf("%d", pid))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removePidFile(path string) {
+	os.Remove(path)
+}
+
 func readConfig() (Config, error) {
 	// init with defaults
 	config := Config{
+		PidFile:    "",
 		MQTTHost:   "localhost",
 		MQTTPort:   1883,
 		InfluxHost: "localhost",
