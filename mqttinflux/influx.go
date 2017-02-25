@@ -8,9 +8,11 @@ import (
 	"strings"
 )
 
-var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.]+$")
-var fieldPattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.]+$")
-var tagPattern = regexp.MustCompile("^[a-zA-Z0-9-_\\.]+$")
+var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+var fieldPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+var valuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]*$")
+var tagPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+var tagValuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]+$")
 
 var influxQueue = make(chan *Measurement, 32)
 var influxClient http.Client
