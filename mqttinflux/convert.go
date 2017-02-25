@@ -23,6 +23,7 @@ func init() {
 type Conversion struct {
 	Kind      string            `json:"kind"`
 	Precision int               `json:"precision"`
+	Scale     float64			`json:"scale"`
 	Lookup    map[string]string `json:"lookup"`
 }
 
@@ -71,6 +72,10 @@ func Float(raw string, params *Conversion) (string, error) {
 		parsed = 0
 	}
 
+	if params.Scale != 0 {
+		parsed = parsed * params.Scale
+	}
+
 	template := "%f"
 	if params.Precision != 0 {
 		template = fmt.Sprintf("%%.%df", params.Precision)
@@ -84,6 +89,12 @@ func Integer(raw string, params *Conversion) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	if params.Scale != 0 {
+		scaled := float64(parsed) * params.Scale
+		parsed = int64(scaled)
+	}
+
 	return fmt.Sprintf("%d", parsed), nil
 }
 

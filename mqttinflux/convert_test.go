@@ -44,6 +44,7 @@ func TestConvertFloat(t *testing.T) {
 
 func TestConvertInteger(t *testing.T) {
 	c := Conversion{Kind: "integer"}
+
 	cases := make(map[string]string, 7)
 	cases["1"] = "1"
 	cases["-1"] = "-1"
@@ -52,7 +53,6 @@ func TestConvertInteger(t *testing.T) {
 	cases["00"] = "0"
 	cases["01"] = "1"
 	cases["123"] = "123"
-
 	checkConversion(c, cases, t)
 
 	expectedErrors := make([]string, 6)
@@ -64,6 +64,26 @@ func TestConvertInteger(t *testing.T) {
 	expectedErrors[5] = "1,123"
 
 	checkExpectedErrors(c, expectedErrors, t)
+}
+
+func TestConvertScale(t *testing.T) {
+	c := Conversion{Kind: "float", Scale: 2.0, Precision: 1,}
+	cases := make(map[string]string, 3)
+	cases["1"] = "2.0"
+	cases["-1"] = "-2.0"
+	cases["0"] = "0.0"
+
+	checkConversion(c, cases, t)
+
+	c = Conversion{Kind: "float", Scale: 0.1, Precision: 1,}
+	cases = make(map[string]string, 5)
+	cases["1"] = "0.1"
+	cases["-1"] = "-0.1"
+	cases["0"] = "0.0"
+	cases["1.1"] = "0.1"
+	cases["1.6"] = "0.2"
+
+	checkConversion(c, cases, t)
 }
 
 func TestConvertBoolean(t *testing.T) {
