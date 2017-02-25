@@ -67,7 +67,7 @@ func TestConvertInteger(t *testing.T) {
 }
 
 func TestConvertScale(t *testing.T) {
-	c := Conversion{Kind: "float", Scale: 2.0, Precision: 1,}
+	c := Conversion{Kind: "float", Scale: 2.0, Precision: 1}
 	cases := make(map[string]string, 3)
 	cases["1"] = "2.0"
 	cases["-1"] = "-2.0"
@@ -75,7 +75,7 @@ func TestConvertScale(t *testing.T) {
 
 	checkConversion(c, cases, t)
 
-	c = Conversion{Kind: "float", Scale: 0.1, Precision: 1,}
+	c = Conversion{Kind: "float", Scale: 0.1, Precision: 1}
 	cases = make(map[string]string, 5)
 	cases["1"] = "0.1"
 	cases["-1"] = "-0.1"

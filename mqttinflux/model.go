@@ -44,7 +44,7 @@ func (s *Subscription) parseTemplates() error {
 	raw["measurement"] = s.Measurement
 
 	for k, v := range s.Tags {
-		raw["tag." + k] = v
+		raw["tag."+k] = v
 	}
 
 	for name, text := range raw {
@@ -152,7 +152,7 @@ func (ctx *TemplateContext) JSON(path string) (string, error) {
 			context = current.(map[string]interface{})
 			// continue with the next path component
 		default:
-			if index != len(parts) - 1 {
+			if index != len(parts)-1 {
 				return "", errors.New(fmt.Sprintf("could not find %v in JSON", path))
 			} else {
 				// we have reached the last path element, keep that value

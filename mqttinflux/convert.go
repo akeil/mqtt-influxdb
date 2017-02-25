@@ -23,7 +23,7 @@ func init() {
 type Conversion struct {
 	Kind      string            `json:"kind"`
 	Precision int               `json:"precision"`
-	Scale     float64			`json:"scale"`
+	Scale     float64           `json:"scale"`
 	Lookup    map[string]string `json:"lookup"`
 }
 

@@ -74,9 +74,9 @@ func TestTemplatePart(t *testing.T) {
 		"invalid": "{{.Part 4}}",
 	}
 	s := Subscription{
-		Topic: "foo/bar/baz",
+		Topic:       "foo/bar/baz",
 		Measurement: "{{.Part 2}}",
-		Tags: tags,
+		Tags:        tags,
 	}
 
 	err := s.parseTemplates()
@@ -104,7 +104,7 @@ func TestTemplateJSON(t *testing.T) {
 	s.Topic = "foo/bar/baz"
 	s.Measurement = "something"
 	s.Tags = map[string]string{
-		"path": "{{.JSON \"foo.bar\"}}",
+		"path":     "{{.JSON \"foo.bar\"}}",
 		"nonexist": "{{.JSON \"foo.nonexist\"}}",
 	}
 
@@ -133,7 +133,6 @@ func TestTemplateJSON(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error, got OK")
 	}
-
 
 	// invalid JSON
 	ctx2 := NewTemplateContext("foo/bar/baz", "this is not JSON")
