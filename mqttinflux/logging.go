@@ -1,24 +1,24 @@
 package mqttinflux
 
 import (
-    "log"
+	"log"
 )
 
 // Log Levels -----------------------------------------------------------------
 
 func LogError(message string, v ...interface{}) {
-    logLevel("ERROR", message, v...)
+	logLevel("ERROR", message, v...)
 }
 
 func LogWarning(message string, v ...interface{}) {
-    logLevel("WARNING", message, v...)
+	logLevel("WARNING", message, v...)
 }
 
 func LogInfo(message string, v ...interface{}) {
-    logLevel("INFO", message, v...)
+	logLevel("INFO", message, v...)
 }
 
 func logLevel(level, message string, v ...interface{}) {
-    m := level + " " + message
-    log.Printf(m, v...)
+	m := level + " " + message
+	log.Printf(m, v...)
 }
