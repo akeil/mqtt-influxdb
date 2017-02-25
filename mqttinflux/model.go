@@ -2,6 +2,7 @@ package mqttinflux
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -43,7 +44,7 @@ func (s *Subscription) parseTemplates() error {
 	raw["measurement"] = s.Measurement
 
 	for k, v := range s.Tags {
-		raw["tag."+k] = v
+		raw["tag." + k] = v
 	}
 
 	for name, text := range raw {
@@ -92,7 +93,7 @@ func (s *Subscription) Handle(topic string, payload string) error {
 func (s *Subscription) fillTemplate(name string, ctx TemplateContext) (string, error) {
 	t, ok := s.cachedTemplates[name]
 	if !ok {
-		return "", errors.New("unknown template")
+		return "", errors.New(fmt.Sprintf("unknown template '%v'", name))
 	}
 	buf := new(bytes.Buffer)
 	err := t.Execute(buf, &ctx)
@@ -125,6 +126,43 @@ func (ctx *TemplateContext) Part(index int) (string, error) {
 	}
 
 	return ctx.Parts[index], nil
+}
+
+// Parse payload to JSON and get a value from the resulting data structure
+//
+// `path` is a dotted path to access nested maps.
+// e.g. `foo.bar.baz` would return `data['foo']['bar']['baz']`.
+func (ctx *TemplateContext) JSON(path string) (string, error) {
+	data := make(map[string]interface{})
+	dec := json.NewDecoder(strings.NewReader(ctx.Payload))
+	err := dec.Decode(&data)
+	if err != nil {
+		return "", err
+	}
+
+	parts := strings.Split(path, ".")
+	context := data
+	var current interface{}
+	for index, key := range parts {
+		current = context[key]
+		switch current.(type) {
+		case nil:
+			return "", errors.New(fmt.Sprintf("could not find key '%v'", key))
+		case map[string]interface{}:
+			context = current.(map[string]interface{})
+			// continue with the next path component
+		default:
+			if index != len(parts) - 1 {
+				return "", errors.New(fmt.Sprintf("could not find %v in JSON", path))
+			} else {
+				// we have reached the last path element, keep that value
+				break
+			}
+		}
+	}
+
+	// value to string
+	return fmt.Sprintf("%v", current), nil
 }
 
 // Measurement ----------------------------------------------------------------
