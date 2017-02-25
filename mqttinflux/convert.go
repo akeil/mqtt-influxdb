@@ -66,6 +66,11 @@ func Float(raw string, params *Conversion) (string, error) {
 		return "", err
 	}
 
+	// special case '-0.0' to '0.0'
+	if parsed == -0 {
+		parsed = 0
+	}
+
 	template := "%f"
 	if params.Precision != 0 {
 		template = fmt.Sprintf("%%.%df", params.Precision)
@@ -97,7 +102,8 @@ func Floor(raw string, params *Conversion) (string, error) {
 */
 
 func Boolean(raw string, params *Conversion) (string, error) {
-	parsed, err := strconv.ParseBool(raw)
+	s := strings.TrimSpace(strings.ToLower(raw))
+	parsed, err := strconv.ParseBool(s)
 	if err != nil {
 		return "", err
 	}

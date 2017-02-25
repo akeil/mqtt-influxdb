@@ -1,6 +1,9 @@
 BINARY = ./cmd/mfx
 BINDIR = bin
 ARMDIR = bin/linux/arm
+PKG = ./mqttinflux
+
+default: test build
 
 build:
 	mkdir -p $(BINDIR)
@@ -12,3 +15,6 @@ arm:
 
 install:
 	go install $(BINARY)
+
+test:
+	go test $(PKG)
