@@ -18,6 +18,7 @@ func connectMQTT(config Config) error {
 	hostname, err := os.Hostname()
 	if err == nil {
 		opts.SetClientID("mqtt-influxdb-" + hostname)
+		opts.SetCleanSession(true)
 	}
 
 	mqttClient = mqtt.NewClient(opts) // global

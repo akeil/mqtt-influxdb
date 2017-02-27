@@ -1,7 +1,7 @@
 BINARY = ./cmd/mfx
-BINDIR = bin
-ARMDIR = bin/linux/arm
-PKG = ./mqttinflux
+BINDIR = ./bin
+ARMDIR = $(BINDIR)/linux/arm
+PKG    = ./mqttinflux
 
 default: test build
 
