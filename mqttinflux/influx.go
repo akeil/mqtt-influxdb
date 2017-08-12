@@ -10,7 +10,7 @@ import (
 
 var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
 var fieldPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
-var valuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]*$")
+//var valuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]*$")
 var tagPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
 var tagValuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]+$")
 

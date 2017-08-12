@@ -232,14 +232,14 @@ func (m *Measurement) Validate() error {
 		return errors.New("At least one value is required")
 	}
 
-	for fieldName, value := range m.Values {
+	for fieldName, _ := range m.Values {
 		if !fieldPattern.MatchString(fieldName) {
 			return errors.New("Invalid field name")
 		}
 
-		if !valuePattern.MatchString(value) {
-			return errors.New("Invalid value format")
-		}
+		//if !valuePattern.MatchString(value) {
+		//	return errors.New("Invalid value format")
+		//}
 	}
 
 	for tagName, tagValue := range m.Tags {

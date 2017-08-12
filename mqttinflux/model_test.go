@@ -48,11 +48,11 @@ func TestMeasurementValue(t *testing.T) {
 		t.Error("Expected error for missing value")
 	}
 
-	m.SetValue("222 1234")
-	err = m.Validate()
-	if err == nil {
-		t.Error("Expected error for invalid value")
-	}
+	//m.SetValue("222 1234")
+	//err = m.Validate()
+	//if err == nil {
+	//	t.Error("Expected error for invalid value")
+	//}
 
 	m.SetValue("")
 	err = m.Validate()
