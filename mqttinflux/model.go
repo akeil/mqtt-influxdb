@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -201,9 +202,17 @@ func (m *Measurement) Format() string {
 	// <measurement>
 	s := m.Name
 
+	// sorted tags (for performance on recevier side)
+	var tagNames []string
+	for tagName := range m.Tags {
+		tagNames = append(tagNames, tagName)
+	}
+	sort.Strings(tagNames)
+
 	// ,<tag_key>=<tag_value>
-	for tagname, tagvalue := range m.Tags {
-		s += fmt.Sprintf(",%v=%v", tagname, tagvalue)
+	for _, tagName := range tagNames {
+		tagValue := m.Tags[tagName]
+		s += fmt.Sprintf(",%v=%v", tagName, tagValue)
 	}
 
 	// <field_key>=<field_value>[,<field_key>=<field_value>]
