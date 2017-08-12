@@ -1,4 +1,27 @@
 package mqttinflux
+// format for filed values by data type:
+// - https://golang.org/pkg/fmt/
+// - https://docs.influxdata.com/influxdb/v1.3//write_protocols/line_protocol_tutorial/#syntax
+//
+// float:
+//    any numerical value, with or without decimal separator
+//
+// integer:
+//    numerical value, no decimal separator, APPEND 'i' - e.g. 123i
+//
+//	  Go: %d, base 10 integer, add the 'i'
+//
+// boolean:
+//    true: t, T, true, True, TRUE
+//    false: f, F, false, False, FALSE
+//
+//	  Go: %t -> true|false
+//
+// string:
+//    double quote, e.g. "foo" or "foo bar"
+//    escape quotes within the string: "foo \"bar\" baz"
+//
+//    Go: %q, double quotes incl. escape
 
 import (
 	"errors"
@@ -16,6 +39,7 @@ func init() {
 	converters["identity"] = Identity
 	converters["float"] = Float
 	converters["integer"] = Integer
+	converters["string"] = String
 	converters["boolean"] = Boolean
 	converters["on-off"] = OnOff
 }
@@ -95,7 +119,11 @@ func Integer(raw string, params *Conversion) (string, error) {
 		parsed = int64(scaled)
 	}
 
-	return fmt.Sprintf("%d", parsed), nil
+	return fmt.Sprintf("%di", parsed), nil
+}
+
+func String(raw string, params *Conversion) (string, error) {
+	return fmt.Sprintf("%q", raw), nil
 }
 
 /*

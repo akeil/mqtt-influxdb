@@ -46,13 +46,13 @@ func TestConvertInteger(t *testing.T) {
 	c := Conversion{Kind: "integer"}
 
 	cases := make(map[string]string, 7)
-	cases["1"] = "1"
-	cases["-1"] = "-1"
-	cases["0"] = "0"
-	cases["-0"] = "0"
-	cases["00"] = "0"
-	cases["01"] = "1"
-	cases["123"] = "123"
+	cases["1"] = "1i"
+	cases["-1"] = "-1i"
+	cases["0"] = "0i"
+	cases["-0"] = "0i"
+	cases["00"] = "0i"
+	cases["01"] = "1i"
+	cases["123"] = "123i"
 	checkConversion(c, cases, t)
 
 	expectedErrors := make([]string, 6)
@@ -64,6 +64,18 @@ func TestConvertInteger(t *testing.T) {
 	expectedErrors[5] = "1,123"
 
 	checkExpectedErrors(c, expectedErrors, t)
+}
+
+func TestConvertString(t *testing.T) {
+	c := Conversion{Kind: "string"}
+
+	cases := make(map[string]string, 4)
+	cases["foo"] = "\"foo\""
+	cases["foo bar"] = "\"foo bar\""
+	cases["'single'"] = "\"'single'\""
+	cases["\"double\""] = "\"\\\"double\\\"\""
+
+	checkConversion(c, cases, t)
 }
 
 func TestConvertScale(t *testing.T) {
