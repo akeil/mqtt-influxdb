@@ -30,7 +30,7 @@ func connectMQTT(config Config, subscriptions []Subscription) error {
 
 	mqttClient = mqtt.NewClient(opts) // global
 
-	logMQTTConnect(uri)
+	logMQTTConnecting(uri)
 	t := mqttClient.Connect()
 	t.Wait() // no timeout
 	return t.Error()
@@ -40,13 +40,13 @@ func disconnectMQTT() {
 	if mqttClient != nil {
 		if mqttClient.IsConnected() {
 			logMQTTDisconnect()
-			unsubscribeMQTT()
+			unsubscribe()
 			mqttClient.Disconnect(250) // 250 millis cleanup time
 		}
 	}
 }
 
-func subscribeMQTT() error {
+func subscribe() error {
 	var err error
 	qos := byte(0)
 	for _, sub := range mqttSubscriptions {
@@ -67,7 +67,7 @@ func subscribeMQTT() error {
 	return nil
 }
 
-func unsubscribeMQTT() {
+func unsubscribe() {
 	if mqttClient != nil {
 		for _, sub := range mqttSubscriptions {
 			logMQTTUnsubscribe(sub.Topic)
@@ -79,23 +79,32 @@ func unsubscribeMQTT() {
 // Connection handlers --------------------------------------------------------
 
 func connectionLost(client mqtt.Client, reason error) {
-	LogInfo("MQTT connection lost: '%v'", reason)
+	logMQTTConnectionLost(reason)
 }
 
 func connected(client mqtt.Client) {
 	opts := client.OptionsReader()
-	LogInfo("MQTT (re-)connected to '%v'", opts.Servers()[0])
+	logMQTTConnected(opts.Servers()[0])
+
 	subscribeMQTT()
 }
 
 // Logging --------------------------------------------------------------------
 
-func logMQTTConnect(uri string) {
+func logMQTTConnecting(uri string) {
 	LogInfo("MQTT connecting to '%v'", uri)
+}
+
+func logMQTTConnected(uri string) {
+	LogInfo("MQTT (re-)connected to '%v'", uri)
 }
 
 func logMQTTDisconnect() {
 	LogInfo("MQTT disconnecting")
+}
+
+func logMQTTConnectionLost(err error) {
+	LogInfo("MQTT connection lost: '%v'", err)
 }
 
 func logMQTTSubscribe(topic string) {
