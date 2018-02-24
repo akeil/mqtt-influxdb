@@ -14,12 +14,15 @@ func connectMQTT(config Config) error {
 	uri := fmt.Sprintf("tcp://%v:%v", config.MQTTHost, config.MQTTPort)
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(uri)
+	opts.OnConnect = connected
+	opts.OnConnectionLost = connectionLost
 
 	hostname, err := os.Hostname()
 	if err == nil {
 		opts.SetClientID("mqtt-influxdb-" + hostname)
 		opts.SetCleanSession(true)
 	}
+
 
 	mqttClient = mqtt.NewClient(opts) // global
 
@@ -69,14 +72,26 @@ func unsubscribeMQTT() {
 	}
 }
 
+// Connection handlers --------------------------------------------------------
+
+func connectionLost(client mqtt.Client, reason error) {
+	LogInfo("MQTT connection lost: '%v'", reason)
+}
+
+func connected(client mqtt.Client) {
+	opts := client.OptionsReader()
+
+	LogInfo("MQTT connected to '%v'", opts.Servers()[0])
+}
+
 // Logging --------------------------------------------------------------------
 
 func logMQTTConnect(uri string) {
-	LogInfo("MQTT connect to '%v'", uri)
+	LogInfo("MQTT connecting to '%v'", uri)
 }
 
 func logMQTTDisconnect() {
-	LogInfo("MQTT disconnect")
+	LogInfo("MQTT disconnecting")
 }
 
 func logMQTTSubscribe(topic string) {
