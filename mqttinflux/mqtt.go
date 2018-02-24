@@ -84,9 +84,9 @@ func connectionLost(client mqtt.Client, reason error) {
 
 func connected(client mqtt.Client) {
 	opts := client.OptionsReader()
-	logMQTTConnected(opts.Servers()[0])
+	logMQTTConnected(opts.Servers()[0].String())
 
-	subscribeMQTT()
+	subscribe()
 }
 
 // Logging --------------------------------------------------------------------
