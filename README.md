@@ -9,6 +9,16 @@ Configuration files are stored at
 - `/etc/mqtt-influxdb.json`
 
 The user specific file takes precedence over the system-wide configuration.
+
+The path to the configuration file can be specified on the command line:
+
+```sh
+$ mfx -c /path/to/config.json
+```
+
+If the configuration is specified on the command line, it *must* exist.
+Otherwise, a default configuration will be used if no file can be found.
+
 The configuration file looks like this:
 
 ```json

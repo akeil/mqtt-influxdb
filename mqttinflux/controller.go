@@ -2,6 +2,7 @@ package mqttinflux
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,12 +14,12 @@ import (
 
 const APPNAME = "mqtt-influxdb"
 
-func Run() error {
+func Run(configPath string) error {
 	// setup channel to receive SIGINT (ctrl+c)
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt)
 
-	config, err := readConfig()
+	config, err := readConfig(configPath)
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,7 @@ func removePidFile(path string) {
 	os.Remove(path)
 }
 
-func readConfig() (Config, error) {
+func readConfig(configPath string) (Config, error) {
 	// init with defaults
 	config := Config{
 		PidFile:    "",
@@ -85,15 +86,24 @@ func readConfig() (Config, error) {
 		InfluxUser: "",
 		InfluxPass: "",
 	}
-	currentUser, err := user.Current()
-	if err != nil {
-		return config, err
+
+	var paths []string
+	required := configPath != ""
+	if configPath != "" {
+		paths = []string{configPath}
+	} else {
+		currentUser, err := user.Current()
+		if err != nil {
+			return config, err
+		}
+
+		paths = []string{
+			"/etc/" + APPNAME + ".json",
+			filepath.Join(currentUser.HomeDir, ".config", APPNAME+".json"),
+		}
 	}
 
-	paths := []string{
-		"/etc/" + APPNAME + ".json",
-		filepath.Join(currentUser.HomeDir, ".config", APPNAME+".json"),
-	}
+	found := false
 	for _, path := range paths {
 		f, err := os.Open(path)
 		if os.IsNotExist(err) {
@@ -112,9 +122,15 @@ func readConfig() (Config, error) {
 				return config, err
 			}
 		}
+		found = true
 
 	}
-	return config, nil
+
+	if required && !found {
+		return config, errors.New("Failed to read configuration.")
+	} else {
+		return config, nil
+	}
 }
 
 func loadSubscriptions() ([]Subscription, error) {
