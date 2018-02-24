@@ -40,6 +40,7 @@ func disconnectMQTT() {
 	if mqttClient != nil {
 		if mqttClient.IsConnected() {
 			logMQTTDisconnect()
+			unsubscribeMQTT()
 			mqttClient.Disconnect(250) // 250 millis cleanup time
 		}
 	}
@@ -83,8 +84,8 @@ func connectionLost(client mqtt.Client, reason error) {
 
 func connected(client mqtt.Client) {
 	opts := client.OptionsReader()
-
-	LogInfo("MQTT connected to '%v'", opts.Servers()[0])
+	LogInfo("MQTT (re-)connected to '%v'", opts.Servers()[0])
+	subscribeMQTT()
 }
 
 // Logging --------------------------------------------------------------------

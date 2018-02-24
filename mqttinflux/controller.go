@@ -48,12 +48,6 @@ func Run() error {
 	}
 	defer disconnectMQTT()
 
-	err = subscribeMQTT()
-	if err != nil {
-		return err
-	}
-	defer unsubscribeMQTT()
-
 	// wait for SIGINT
 	_ = <-s
 	return nil
