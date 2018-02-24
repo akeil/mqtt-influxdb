@@ -42,13 +42,13 @@ func Run() error {
 	}
 	defer stopInflux()
 
-	err = connectMQTT(config)
+	err = connectMQTT(config, subscriptions)
 	if err != nil {
 		return err
 	}
 	defer disconnectMQTT()
 
-	err = subscribeMQTT(subscriptions)
+	err = subscribeMQTT()
 	if err != nil {
 		return err
 	}

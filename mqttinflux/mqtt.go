@@ -10,7 +10,11 @@ import (
 var mqttClient mqtt.Client
 var mqttSubscriptions = make([]Subscription, 0)
 
-func connectMQTT(config Config) error {
+func connectMQTT(config Config, subscriptions []Subscription) error {
+	for _, sub := range subscriptions {
+		mqttSubscriptions = append(mqttSubscriptions, sub)
+	}
+
 	uri := fmt.Sprintf("tcp://%v:%v", config.MQTTHost, config.MQTTPort)
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(uri)
@@ -41,10 +45,10 @@ func disconnectMQTT() {
 	}
 }
 
-func subscribeMQTT(subscriptions []Subscription) error {
+func subscribeMQTT() error {
 	var err error
 	qos := byte(0)
-	for _, sub := range subscriptions {
+	for _, sub := range mqttSubscriptions {
 		logMQTTSubscribe(sub.Topic)
 		s := sub // local var for scope
 		t := mqttClient.Subscribe(s.Topic, qos, func(c mqtt.Client, m mqtt.Message) {
@@ -58,7 +62,6 @@ func subscribeMQTT(subscriptions []Subscription) error {
 		if err != nil {
 			return err
 		}
-		mqttSubscriptions = append(mqttSubscriptions, s)
 	}
 	return nil
 }
