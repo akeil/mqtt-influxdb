@@ -26,6 +26,8 @@ The configuration file looks like this:
     "pidfile": "/tmp/mfx.pid",
     "MQTTHost": "localhost",
     "MQTTPort": 1883,
+    "MQTTUser": "username",
+    "MQTTPass": "secret",
     "influxHost": "localhost",
     "influxPort": 8086,
     "influxUser": "username",
@@ -39,6 +41,8 @@ The configuration file looks like this:
 | pidfile    | *empty*   | If set to a path, write PID file to that location |
 | MQTTHost   | localhost | Hostname or IP address for MQTT broker            |
 | MQTTPort   | 1883      | Port for MQTT broker                              |
+| MQTTUser   | *empty*   | Username for MQTT authentication                  |
+| MQTTPass   | *empty*   | Password for MQTT authentication                  |
 | influxHost | localhost | Hostname or IP address of InfluxDB                |
 | influxPort | 8086      | Port for InfluxDB                                 |
 | influxUser | *empty*   | Username for authenticating against InfluxDB      |

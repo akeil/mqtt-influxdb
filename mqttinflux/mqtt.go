@@ -18,6 +18,8 @@ func connectMQTT(config Config, subscriptions []Subscription) error {
 	uri := fmt.Sprintf("tcp://%v:%v", config.MQTTHost, config.MQTTPort)
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(uri)
+	opts.SetUsername(config.MQTTUser)
+	opts.SetPassword(config.MQTTPass)
 	opts.OnConnect = connected
 	opts.OnConnectionLost = connectionLost
 

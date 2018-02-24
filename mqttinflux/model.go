@@ -14,14 +14,16 @@ import (
 // Config ---------------------------------------------------------------------
 
 type Config struct {
-	PidFile    string `json:"pidfile"`
-	MQTTHost   string `json:"MQTTHost"`
-	MQTTPort   int    `json:"MQTTPort"`
-	InfluxHost string `json:"influxHost"`
-	InfluxPort int    `json:"influxPort"`
-	InfluxUser string `json:"influxUser"`
-	InfluxPass string `json:"influxPass"`
-	InfluxDB   string `json:"influxDB"`
+	PidFile		string	`json:"pidfile"`
+	MQTTHost	string	`json:"MQTTHost"`
+	MQTTPort	int		`json:"MQTTPort"`
+	MQTTUser	string	`json:"MQTTUser"`
+	MQTTPass	string	`json:"MQTTPass"`
+	InfluxHost	string	`json:"influxHost"`
+	InfluxPort	int		`json:"influxPort"`
+	InfluxUser	string	`json:"influxUser"`
+	InfluxPass	string	`json:"influxPass"`
+	InfluxDB  	string	`json:"influxDB"`
 }
 
 // Subscription ---------------------------------------------------------------
