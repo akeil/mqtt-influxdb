@@ -14,7 +14,13 @@ import (
 
 const APPNAME = "mqtt-influxdb"
 
+// set during build with -ldflags, see Makefile
+var Version = ""
+var Commit = ""
+
 func Run(configPath string) error {
+	LogInfo("Starting %v Version %v (ref %v)", APPNAME, Version, Commit)
+
 	// setup channel to receive SIGINT (ctrl+c)
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt)
