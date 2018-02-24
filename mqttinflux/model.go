@@ -21,7 +21,7 @@ type Config struct {
 	InfluxPort int    `json:"influxPort"`
 	InfluxUser string `json:"influxUser"`
 	InfluxPass string `json:"influxPass"`
-	InfluxDB   string `json:"InfluxDB"`
+	InfluxDB   string `json:"influxDB"`
 }
 
 // Subscription ---------------------------------------------------------------

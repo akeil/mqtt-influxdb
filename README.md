@@ -26,11 +26,11 @@ The configuration file looks like this:
     "pidfile": "/tmp/mfx.pid",
     "MQTTHost": "localhost",
     "MQTTPort": 1883,
-    "InfluxHost": "localhost",
-    "InfluxPort": 8086,
-    "InfluxUser": "username",
-    "InfluxPass": "secret",
-    "InfluxDB": "default"
+    "influxHost": "localhost",
+    "influxPort": 8086,
+    "influxUser": "username",
+    "influxPass": "secret",
+    "influxDB": "default"
 }
 ```
 
@@ -39,11 +39,11 @@ The configuration file looks like this:
 | pidfile    | *empty*   | If set to a path, write PID file to that location |
 | MQTTHost   | localhost | Hostname or IP address for MQTT broker            |
 | MQTTPort   | 1883      | Port for MQTT broker                              |
-| InfluxHost | localhost | Hostname or IP address of InfluxDB                |
-| InfluxPort | 8086      | Port for InfluxDB                                 |
-| InfluxUser | *empty*   | Username for authenticating against InfluxDB      |
-| InfluxPass | *empty*   | Password (clear) for InfluxDB                     |
-| InfluxDB   | default   | Name of the InfluxDB database                     |
+| influxHost | localhost | Hostname or IP address of InfluxDB                |
+| influxPort | 8086      | Port for InfluxDB                                 |
+| influxUser | *empty*   | Username for authenticating against InfluxDB      |
+| influxPass | *empty*   | Password (clear) for InfluxDB                     |
+| influxDB   | default   | Name of the InfluxDB database                     |
 
 ## Subscriptions
 Keep several JSON files in the subscription directory:
