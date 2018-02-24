@@ -8,7 +8,7 @@ import (
 )
 
 var mqttClient mqtt.Client
-var mqttSubscriptions = make([]string, 0)
+var mqttSubscriptions = make([]Subscription, 0)
 
 func connectMQTT(config Config) error {
 	uri := fmt.Sprintf("tcp://%v:%v", config.MQTTHost, config.MQTTPort)
@@ -58,16 +58,16 @@ func subscribeMQTT(subscriptions []Subscription) error {
 		if err != nil {
 			return err
 		}
-		mqttSubscriptions = append(mqttSubscriptions, s.Topic)
+		mqttSubscriptions = append(mqttSubscriptions, s)
 	}
 	return nil
 }
 
 func unsubscribeMQTT() {
 	if mqttClient != nil {
-		for _, topic := range mqttSubscriptions {
-			logMQTTUnsubscribe(topic)
-			mqttClient.Unsubscribe(topic)
+		for _, sub := range mqttSubscriptions {
+			logMQTTUnsubscribe(sub.Topic)
+			mqttClient.Unsubscribe(sub.Topic)
 		}
 	}
 }
