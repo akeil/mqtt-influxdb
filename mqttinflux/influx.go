@@ -1,7 +1,6 @@
 package mqttinflux
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 
 var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
 var fieldPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+
 //var valuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]*$")
 var tagPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
 var tagValuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]+$")
@@ -60,10 +60,9 @@ func send(m *Measurement) error {
 
 	if res.StatusCode == 200 || res.StatusCode == 204 {
 		return nil
-	} else {
-		LogWarning("Got error for request: %v", m.Format())
-		return errors.New(fmt.Sprintf("Got HTTP %v", res.Status))
 	}
+	LogWarning("Got error for request: %v", m.Format())
+	return fmt.Errorf("got HTTP %v", res.Status)
 }
 
 func work() {

@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	if printVersion {
-		fmt.Printf("%v %v (ref: %v)\n", mqttinflux.APPNAME,
+		fmt.Printf("%v %v (ref: %v)\n", mqttinflux.AppName,
 			mqttinflux.Version, mqttinflux.Commit)
 		return
 	}

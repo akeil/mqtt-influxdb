@@ -11,29 +11,28 @@ import (
 	"time"
 )
 
-// Config ---------------------------------------------------------------------
-
+// Config settings.
 type Config struct {
-	PidFile		string	`json:"pidfile"`
-	MQTTHost	string	`json:"MQTTHost"`
-	MQTTPort	int		`json:"MQTTPort"`
-	MQTTUser	string	`json:"MQTTUser"`
-	MQTTPass	string	`json:"MQTTPass"`
-	InfluxHost	string	`json:"influxHost"`
-	InfluxPort	int		`json:"influxPort"`
-	InfluxUser	string	`json:"influxUser"`
-	InfluxPass	string	`json:"influxPass"`
-	InfluxDB  	string	`json:"influxDB"`
+	PidFile    string `json:"pidfile"`
+	MQTTHost   string `json:"MQTTHost"`
+	MQTTPort   int    `json:"MQTTPort"`
+	MQTTUser   string `json:"MQTTUser"`
+	MQTTPass   string `json:"MQTTPass"`
+	InfluxHost string `json:"influxHost"`
+	InfluxPort int    `json:"influxPort"`
+	InfluxUser string `json:"influxUser"`
+	InfluxPass string `json:"influxPass"`
+	InfluxDB   string `json:"influxDB"`
 }
 
-// Subscription ---------------------------------------------------------------
-
+// Subscription describes a single subscription to an MQTT topic.
+// the topic can contain wildcards.
 type Subscription struct {
-	Topic           string                        `json:"topic"`
-	Measurement     string                        `json:"measurement"`
-	Tags            map[string]string             `json:"tags"`
-	Conversion      Conversion                    `json:"conversion"`
-	cachedTemplates map[string]*template.Template `json:"-"`
+	Topic           string            `json:"topic"`
+	Measurement     string            `json:"measurement"`
+	Tags            map[string]string `json:"tags"`
+	Conversion      Conversion        `json:"conversion"`
+	cachedTemplates map[string]*template.Template
 }
 
 func (s *Subscription) parseTemplates() error {
@@ -62,6 +61,7 @@ func (s *Subscription) parseTemplates() error {
 	return nil
 }
 
+// Handle an incoming message for the given topic.
 func (s *Subscription) Handle(topic string, payload string) error {
 	err := s.parseTemplates()
 	if err != nil {
@@ -81,7 +81,7 @@ func (s *Subscription) Handle(topic string, payload string) error {
 	}
 	m.SetValue(converted)
 
-	for tag, _ := range s.Tags {
+	for tag := range s.Tags {
 		tagValue, err := s.fillTemplate("tag."+tag, ctx)
 		if err != nil {
 			return err
@@ -96,7 +96,7 @@ func (s *Subscription) Handle(topic string, payload string) error {
 func (s *Subscription) fillTemplate(name string, ctx TemplateContext) (string, error) {
 	t, ok := s.cachedTemplates[name]
 	if !ok {
-		return "", errors.New(fmt.Sprintf("unknown template '%v'", name))
+		return "", fmt.Errorf("unknown template '%v'", name)
 	}
 	buf := new(bytes.Buffer)
 	err := t.Execute(buf, &ctx)
@@ -109,12 +109,14 @@ func (s *Subscription) fillTemplate(name string, ctx TemplateContext) (string, e
 
 // Template -------------------------------------------------------------------
 
+// A TemplateContext provides data for placeholders in templates.
 type TemplateContext struct {
 	Topic   string
 	Payload string
 	Parts   []string
 }
 
+// NewTemplateContext creates a new TemplateContext from an MQTT message.
 func NewTemplateContext(topic, payload string) TemplateContext {
 	return TemplateContext{
 		Topic:   topic,
@@ -123,6 +125,7 @@ func NewTemplateContext(topic, payload string) TemplateContext {
 	}
 }
 
+// Part returns a part from the MQTT topic.
 func (ctx *TemplateContext) Part(index int) (string, error) {
 	if index >= len(ctx.Parts) {
 		return "", errors.New("Topic index out of range")
@@ -131,7 +134,8 @@ func (ctx *TemplateContext) Part(index int) (string, error) {
 	return ctx.Parts[index], nil
 }
 
-// Parse payload to JSON and get a value from the resulting data structure
+// JSON parses payload as JSON
+// and gets a value from the resulting data structure
 //
 // `path` is a dotted path to access nested maps.
 // e.g. `foo.bar.baz` would return `data['foo']['bar']['baz']`.
@@ -150,17 +154,16 @@ func (ctx *TemplateContext) JSON(path string) (string, error) {
 		current = context[key]
 		switch current.(type) {
 		case nil:
-			return "", errors.New(fmt.Sprintf("could not find key '%v'", key))
+			return "", fmt.Errorf("could not find key '%v'", key)
 		case map[string]interface{}:
 			context = current.(map[string]interface{})
 			// continue with the next path component
 		default:
 			if index != len(parts)-1 {
-				return "", errors.New(fmt.Sprintf("could not find %v in JSON", path))
-			} else {
-				// we have reached the last path element, keep that value
-				break
+				return "", fmt.Errorf("could not find %v in JSON", path)
 			}
+			// we have reached the last path element, keep that value
+			break
 		}
 	}
 
@@ -168,8 +171,7 @@ func (ctx *TemplateContext) JSON(path string) (string, error) {
 	return fmt.Sprintf("%v", current), nil
 }
 
-// Measurement ----------------------------------------------------------------
-
+// Measurement is a single measurement to be submitted to InfluxDB.
 type Measurement struct {
 	Name      string
 	Timestamp time.Time
@@ -177,6 +179,7 @@ type Measurement struct {
 	Tags      map[string]string
 }
 
+// NewMeasurement creates a new measurement with the given `name`.
 func NewMeasurement(name string) Measurement {
 	m := Measurement{
 		Name:      name,
@@ -187,19 +190,22 @@ func NewMeasurement(name string) Measurement {
 	return m
 }
 
+// Tag sets a name/value pair as a tag on this measurement.
 func (m *Measurement) Tag(name, value string) {
 	m.Tags[name] = value
 }
 
+// SetValue sets the value for this measurement.
+// The `value` is supplied in a string representation.
 func (m *Measurement) SetValue(value string) {
 	m.Values["value"] = value
 }
 
+// Format returns the "Line Protocol" representation for this measurement.
+// See: https://docs.influxdata.com/influxdb/v1.5/write_protocols/line_protocol_reference/
 func (m *Measurement) Format() string {
 	// pattern:
 	// <measurement>[,<tag_key>=<tag_value>[,<tag_key>=<tag_value>]] <field_key>=<field_value>[,<field_key>=<field_value>] [<timestamp>]
-	// see:
-	// https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_reference/
 
 	// <measurement>
 	s := m.Name
@@ -234,6 +240,7 @@ func (m *Measurement) Format() string {
 	return s
 }
 
+// Validate this measurement.
 func (m *Measurement) Validate() error {
 	if !measurementPattern.MatchString(m.Name) {
 		return errors.New("Invalid measurement name")
@@ -243,7 +250,7 @@ func (m *Measurement) Validate() error {
 		return errors.New("At least one value is required")
 	}
 
-	for fieldName, _ := range m.Values {
+	for fieldName := range m.Values {
 		if !fieldPattern.MatchString(fieldName) {
 			return errors.New("Invalid field name")
 		}

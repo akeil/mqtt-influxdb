@@ -12,14 +12,22 @@ import (
 	"path/filepath"
 )
 
-const APPNAME = "mqtt-influxdb"
+// AppName is the application name
+const AppName = "mqtt-influxdb"
 
 // set during build with -ldflags, see Makefile
+
+// Version number.
 var Version = ""
+
+// Commit reference.
 var Commit = ""
 
+// Run starts the application.
+// The `Run()` function will subscribe to all configured MQTT topics
+// and wait for incoming messages until SIGINT is received.
 func Run(configPath string) error {
-	LogInfo("Starting %v Version %v (ref %v)", APPNAME, Version, Commit)
+	LogInfo("Starting %v Version %v (ref %v)", AppName, Version, Commit)
 
 	// setup channel to receive SIGINT (ctrl+c)
 	s := make(chan os.Signal, 1)
@@ -104,8 +112,8 @@ func readConfig(configPath string) (Config, error) {
 		}
 
 		paths = []string{
-			"/etc/" + APPNAME + ".json",
-			filepath.Join(currentUser.HomeDir, ".config", APPNAME+".json"),
+			"/etc/" + AppName + ".json",
+			filepath.Join(currentUser.HomeDir, ".config", AppName+".json"),
 		}
 	}
 
@@ -133,10 +141,9 @@ func readConfig(configPath string) (Config, error) {
 	}
 
 	if required && !found {
-		return config, errors.New("Failed to read configuration.")
-	} else {
-		return config, nil
+		return config, errors.New("failed to read configuration")
 	}
+	return config, nil
 }
 
 func loadSubscriptions() ([]Subscription, error) {
@@ -147,8 +154,8 @@ func loadSubscriptions() ([]Subscription, error) {
 		return subs, err
 	}
 	dirnames := []string{
-		"/etc/" + APPNAME + ".d",
-		filepath.Join(currentUser.HomeDir, ".config", APPNAME+".d"),
+		"/etc/" + AppName + ".d",
+		filepath.Join(currentUser.HomeDir, ".config", AppName+".d"),
 	}
 
 	for _, dirname := range dirnames {

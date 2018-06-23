@@ -1,5 +1,6 @@
 package mqttinflux
-// format for filed values by data type:
+
+// format for field values by data type:
 // - https://golang.org/pkg/fmt/
 // - https://docs.influxdata.com/influxdb/v1.3//write_protocols/line_protocol_tutorial/#syntax
 //
@@ -30,6 +31,7 @@ import (
 	"strings"
 )
 
+// Converter function
 type Converter func(raw string, params *Conversion) (string, error)
 
 var converters map[string]Converter
@@ -44,6 +46,7 @@ func init() {
 	converters["on-off"] = OnOff
 }
 
+// Conversion settings
 type Conversion struct {
 	Kind      string            `json:"kind"`
 	Precision int               `json:"precision"`
@@ -51,6 +54,7 @@ type Conversion struct {
 	Lookup    map[string]string `json:"lookup"`
 }
 
+// Convert applies the conversion to the given `raw` string value.
 func (c *Conversion) Convert(raw string) (string, error) {
 	var err error
 
@@ -81,10 +85,12 @@ func (c *Conversion) translate(raw string) (string, error) {
 	return translated, nil
 }
 
+// Identity is a `Convert` function which returns its input 1:1.
 func Identity(raw string, params *Conversion) (string, error) {
 	return raw, nil
 }
 
+// Float attempts to convert string input to a float value.
 func Float(raw string, params *Conversion) (string, error) {
 	parsed, err := strconv.ParseFloat(raw, 64)
 	if err != nil {
@@ -107,7 +113,7 @@ func Float(raw string, params *Conversion) (string, error) {
 	return fmt.Sprintf(template, parsed), nil
 }
 
-// base 10 integer
+// Integer converts input to a base 10 integer
 func Integer(raw string, params *Conversion) (string, error) {
 	parsed, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
@@ -122,6 +128,7 @@ func Integer(raw string, params *Conversion) (string, error) {
 	return fmt.Sprintf("%di", parsed), nil
 }
 
+// String convetrst to a quoted string.
 func String(raw string, params *Conversion) (string, error) {
 	return fmt.Sprintf("%q", raw), nil
 }
@@ -140,6 +147,7 @@ func Floor(raw string, params *Conversion) (string, error) {
 }
 */
 
+// Boolean converts to a boolean value.
 func Boolean(raw string, params *Conversion) (string, error) {
 	s := strings.TrimSpace(strings.ToLower(raw))
 	parsed, err := strconv.ParseBool(s)
@@ -149,7 +157,7 @@ func Boolean(raw string, params *Conversion) (string, error) {
 	return fmt.Sprintf("%t", parsed), nil
 }
 
-// converts the string "on" or "off" to a boolean value
+// OnOff converts the string "on" or "off" to a boolean value
 // on=true, off=false
 // case-insensitive
 func OnOff(raw string, params *Conversion) (string, error) {
