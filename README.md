@@ -1,6 +1,7 @@
 # MQTT-InfluxDB
 Subscribe to [MQTT](https://mqtt.org/) topics
-and submit messages as measurements [InfluxDB](https://www.influxdata.com/time-series-platform/influxdb/).
+and submit messages as measurements to [InfluxDB](https://www.influxdata.com/time-series-platform/influxdb/).
+
 
 ## Configuration
 Configuration files are stored at
@@ -35,6 +36,7 @@ The configuration file looks like this:
     "influxDB": "default"
 }
 ```
+Configuration keys and default values:
 
 | Key        | Default   | Description                                       |
 |------------|-----------|---------------------------------------------------|
@@ -49,32 +51,35 @@ The configuration file looks like this:
 | influxPass | *empty*   | Password (clear) for InfluxDB                     |
 | influxDB   | default   | Name of the InfluxDB database                     |
 
+
 ## Subscriptions
 Keep several JSON files in the subscription directory:
 
 - `/etc/mqtt-influxdb.d`
 - `~/.config/mqtt-influxdb.d`
 
-Each file should contain an *array* with subscription details.
-A single Subscription looks like this:
+Each file should contain an array with subscription details.
+A file with a single Subscription might look like this:
 
 ```json
-{
-  "topic": "home/+/thermostat/status/actual_temperature",
-  "measurement": "temperature",
-  "tags": {
-    "device": "thermostat",
-    "room": "{{.Part 1}}"
-  },
-  "conversion": {
-    "kind": "float",
-    "precision": 1
+[
+  {
+    "topic": "home/+/thermostat/status/actual_temperature",
+    "measurement": "temperature",
+    "tags": {
+      "device": "thermostat",
+      "room": "{{.Part 1}}"
+    },
+    "conversion": {
+      "kind": "float",
+      "precision": 1
+    }
   }
-}
+]
 ```
 
-Each subscription defines a single MQTT *topic* to subscribe to and
-a single InfluxDB *measurement* to submit values to.
+Each subscription defines a single MQTT *topic* (possibly using wildcards)
+to subscribe to and an InfluxDB *measurement* to submit values to.
 Optionally a *conversion* can be specified.
 
 | Key                   | Description                           |
@@ -100,14 +105,16 @@ Examples:
 | `{{.Part 1}} `            | foo/bar/baz | "bar"     |
 | `{{.Part 1}}-{{.Part 0}}` | foo/bar/baz | "bar-foo" |
 
+
 ## Conversions
 By default, the MQTT message is treated as a string value.
 
 When submitting to InfluxDB, values are also submitted as strings,
-but InfluxDB will determine the datatype based on the format of the value.
-Moreover, the datatype for an influx measurement is decided by the first value
+but InfluxDB will determine the data type based on the format of the value.
+Moreover, the data type for an influx measurement is decided by the first value
 that is submitted. This can cause problems when values should be *floats*
-and (only) the first value is submitted as "1" (instead of "1.0").
+and (only) the first value is submitted as "1" instead of "1.0".
+
 
 ### Float
 Values are converted to floating point numbers and rounded to the given
@@ -116,11 +123,14 @@ Values are converted to floating point numbers and rounded to the given
 If a value for **scale** is defined, the value will be multiplied by that value
 (before rounding). The scale value is a float.
 
+
 ### Integer
 Convert to integer with optional **scale** (same as for float).
 
+
 ### String
 Treats the value as a string.
+
 
 ### Boolean
 Converts to a boolean value, accepts the same formats the Go
@@ -129,6 +139,7 @@ Converts to a boolean value, accepts the same formats the Go
 - *true*: 1, t, T, TRUE, true or True
 - *false*: 0, f, F, FALSE, false or False
 
+
 ### On-Off
 Expects MQTT messages to contain either "on" or "off" (case-insensitive)
-and converts to a boolean value.
+and converts to a boolean value with `on=true`.
