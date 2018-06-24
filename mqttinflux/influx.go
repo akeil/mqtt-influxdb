@@ -73,7 +73,7 @@ func send(m *Measurement) error {
 	if res.StatusCode == 200 || res.StatusCode == 204 {
 		return nil
 	}
-	LogWarning("Got error for request: %v", m.Format())
+	LogWarning("Got error for request (DB=%q): %q", database, m.Format())
 	return fmt.Errorf("got HTTP %v", res.Status)
 }
 
