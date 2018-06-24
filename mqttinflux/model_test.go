@@ -149,3 +149,61 @@ func TestTemplateJSON(t *testing.T) {
 		t.Error("Expected error, got OK")
 	}
 }
+
+func TestTemplateCSV(t *testing.T) {
+	s := new(Subscription)
+	s.Topic = "foo/bar/baz"
+
+	err := s.parseTemplates()
+	if err != nil {
+		t.Errorf("error parsing template: %v", err)
+	}
+	expect := []string{"123", "5.5", "abc"}
+	csvPayload := "123,5.5,abc"
+	ctx := NewTemplateContext("foo/bar/baz", csvPayload)
+
+	for index, expected := range expect {
+		value, parseErr := ctx.CSV(index)
+		if parseErr != nil {
+			t.Errorf("error parsing csv: %v", parseErr)
+		}
+		if value != expected {
+			t.Errorf("CSV: expected %q, got %q", expected, value)
+		}
+	}
+
+	// index out of range
+	_, err = ctx.CSV(4)
+	if err == nil {
+		t.Error("Expected error, got OK")
+	}
+
+}
+
+func TestTemplateInvalidCSV(t *testing.T) {
+	invalidCSV := NewTemplateContext("foo/bar/baz", "")
+	_, err := invalidCSV.CSV(0)
+	if err == nil {
+		t.Error("Expected error, got OK")
+	}
+}
+
+func TestHandleCSV(t *testing.T) {
+	s := &Subscription{
+		Value:       "CSV 1",
+		Measurement: "test",
+		Conversion: Conversion{
+			Kind:      "float",
+			Precision: 1,
+		},
+	}
+
+	m, err := s.readMeasurement("foo/bar", "123,456")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	if m.Values["value"] != "456.0" {
+		t.Errorf("expected 456, got %v", err)
+	}
+}

@@ -2,6 +2,7 @@ package mqttinflux
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,12 +33,14 @@ type Config struct {
 // Measurement: The InfluxDB measurement to wubmit to
 // Database (optional): the name of the InfluxDB database. By default, the DB
 //     from `Config` is used.
+// Value: optional, specify a template for the value
 // Conversion: how to convert values from MQTT to InfluxDB.
 type Subscription struct {
 	Topic           string            `json:"topic"`
 	Measurement     string            `json:"measurement"`
 	Database        string            `json:"database"`
 	Tags            map[string]string `json:"tags"`
+	Value           string            `json:"value"`
 	Conversion      Conversion        `json:"conversion"`
 	cachedTemplates map[string]*template.Template
 }
@@ -47,10 +50,13 @@ func (s *Subscription) parseTemplates() error {
 		return nil
 	}
 
-	count := 1 + len(s.Tags)
+	// measurement + value + tags
+	count := 1 + 1 + len(s.Tags)
 	raw := make(map[string]string, count)
 	s.cachedTemplates = make(map[string]*template.Template, count)
+
 	raw["measurement"] = s.Measurement
+	raw["value"] = "{{." + s.Value + "}}"
 
 	for k, v := range s.Tags {
 		raw["tag."+k] = v
@@ -69,35 +75,55 @@ func (s *Subscription) parseTemplates() error {
 }
 
 // Handle an incoming message for the given topic.
-func (s *Subscription) Handle(topic string, payload string) error {
-	err := s.parseTemplates()
+func (s *Subscription) Handle(topic, payload string) error {
+	m, err := s.readMeasurement(topic, payload)
 	if err != nil {
 		return err
+	}
+	submitMeasurement(&m)
+	return nil
+}
+
+func (s *Subscription) readMeasurement(topic, payload string) (Measurement, error) {
+	var m Measurement
+	err := s.parseTemplates()
+	if err != nil {
+		return m, err
 	}
 
 	ctx := NewTemplateContext(topic, payload)
 	measurementName, err := s.fillTemplate("measurement", ctx)
 	if err != nil {
-		return err
+		return m, err
 	}
-	m := NewMeasurement(s.Database, measurementName)
+	m = NewMeasurement(s.Database, measurementName)
 
-	converted, err := s.Conversion.Convert(payload)
+	// value from payload, optional template
+	var rawValue string
+	if s.Value == "" {
+		rawValue = payload
+	} else {
+		rawValue, err = s.fillTemplate("value", ctx)
+		if err != nil {
+			return m, err
+		}
+	}
+
+	converted, err := s.Conversion.Convert(rawValue)
 	if err != nil {
-		return err
+		return m, err
 	}
 	m.SetValue(converted)
 
 	for tag := range s.Tags {
 		tagValue, err := s.fillTemplate("tag."+tag, ctx)
 		if err != nil {
-			return err
+			return m, err
 		}
 		m.Tag(tag, tagValue)
 	}
 
-	submitMeasurement(&m)
-	return nil
+	return m, nil
 }
 
 func (s *Subscription) fillTemplate(name string, ctx TemplateContext) (string, error) {
@@ -176,6 +202,24 @@ func (ctx *TemplateContext) JSON(path string) (string, error) {
 
 	// value to string
 	return fmt.Sprintf("%v", current), nil
+}
+
+// CSV parses the payload as a CSV file and returns the value from `colIndex`
+func (ctx *TemplateContext) CSV(colIndex int) (string, error) {
+	payloadReader := strings.NewReader(ctx.Payload)
+	csvReader := csv.NewReader(payloadReader)
+	records, err := csvReader.Read()
+	if err != nil {
+		return "", err
+	}
+
+	maxIndex := len(records) - 1
+	if colIndex > maxIndex {
+		return "", fmt.Errorf("column index %v is out of range (max: %v)",
+			colIndex, maxIndex)
+	}
+
+	return records[colIndex], nil
 }
 
 // Measurement is a single measurement to be submitted to InfluxDB.

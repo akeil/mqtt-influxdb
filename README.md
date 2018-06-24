@@ -125,16 +125,17 @@ Optionally a *database* and a *conversion* can be specified.
 If no database name is specified, the default DB from the global configuration
 is used.
 
-| Key                   | Description                               |
-|-----------------------|-------------------------------------------|
-| `topic`               | The MQTT topic to subscribe to            |
-| `measurement`         | The name of the InfluxDB measurement      |
-| `database`            | *optional*, InfluxDB database to write to |
-| `tags`                | A map with tag names and their values     |
-| `tags.[TAG]`          | a tag name and the tag value              |
-| `conversion`          | Conversion details                        |
-| `conversion.kind`     | The type of conversion to apply           |
-| `conversion.[OPTION]` | Conversion options, depends on `kind`     |
+| Key                   | Description                                     |
+|-----------------------|-------------------------------------------------|
+| `topic`               | The MQTT topic to subscribe to                  |
+| `measurement`         | The name of the InfluxDB measurement            |
+| `database`            | *optional*, InfluxDB database to write to       |
+| `tags`                | A map with tag names and their values           |
+| `tags.[TAG]`          | a tag name and the tag value                    |
+| `value`               | *optional*, method for handling complex payload |
+| `conversion`          | Conversion details                              |
+| `conversion.kind`     | The type of conversion to apply                 |
+| `conversion.[OPTION]` | Conversion options, depends on `kind`           |
 
 
 ### Dynamic Values for Measurements or Tags
@@ -142,12 +143,52 @@ The values for the measurement and tags can be determined dynamically from the
 MQTT topic. This is useful if the topic contains wildcards.
 To get the *nth* element from the topic path, use the `{{.Topic n}}` template.
 The path index is zero-based.
+
+The measurement name or tags can also be read from a *CSV Payload* (see below)
+by using the `.CSV n` template function.
+
+
 Examples:
 
-| Template                    | Topic       | Result    |
-|-----------------------------|-------------|-----------|
-| `{{.Topic 1}} `             | foo/bar/baz | "bar"     |
-| `{{.Topic 1}}-{{.Topic 0}}` | foo/bar/baz | "bar-foo" |
+| Template                    | Topic       | Payload  | Result    |
+|-----------------------------|-------------|----------|-----------|
+| `{{.Topic 1}} `             | foo/bar/baz | *any*    | "bar"     |
+| `{{.Topic 1}}-{{.Topic 0}}` | foo/bar/baz | *any*    | "bar-foo" |
+| `{{.CSV 0}}`                | foo/bar/baz | abc,1,55 | "abc"     |
+| `{{.CSV 0}}-{{.Topic 1}}`   | foo/bar/baz | abc,1,55 | "abc-bar" |
+
+
+### CSV Payload
+The **value** for a measurement can be retrieved from a CSV payload.
+To do this, configure the `value` parameter for the subscription with `CSV n`
+where *n* is the zero-based column index.
+
+When CSV payload is used, *conversions* are applied after the value has
+been extracted from the MQTT message.
+
+A subscription might be defined like this:
+
+```json
+{
+    "topic": "foo/bar",
+    "measurement": "mymeasurement",
+    "value": "CSV 1",
+    "conversion": {
+      "kind": "float",
+      "precision": 1
+    }
+}
+```
+
+An MQTT message with a payload like this ...
+```
+1,50,abc
+```
+... would yield a value of `50.0`
+(the second field from the CSV, converted to a float).
+
+CSV payload does not support multiple lines.
+The value is always read from the first line of the message payload.
 
 
 ## Conversions
