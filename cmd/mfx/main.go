@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"akeil.net/akeil/mqtt-influxdb/pkg"
+	"github.com/akeil/mqtt-influxdb/pkg"
 )
 
 func main() {
