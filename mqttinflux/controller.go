@@ -11,6 +11,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -81,6 +82,7 @@ func Reload(configPath string) error {
 		return err
 	}
 
+	LogInfo("read PID from %q", config.PidFile)
 	pid, err := readPidFile(config.PidFile)
 	if err != nil {
 		return err
@@ -156,7 +158,7 @@ func readPidFile(path string) (int, error) {
 	}
 
 	raw := string(data)
-	pid, err := strconv.ParseInt(raw, 10, 32)
+	pid, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 32)
 
 	return int(pid), err
 }
