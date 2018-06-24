@@ -11,9 +11,7 @@ var mqttClient mqtt.Client
 var mqttSubscriptions = make([]Subscription, 0)
 
 func connectMQTT(config Config, subscriptions []Subscription) error {
-	for _, sub := range subscriptions {
-		mqttSubscriptions = append(mqttSubscriptions, sub)
-	}
+	registerSubscriptions(subscriptions)
 
 	uri := fmt.Sprintf("tcp://%v:%v", config.MQTTHost, config.MQTTPort)
 	opts := mqtt.NewClientOptions()
@@ -28,7 +26,6 @@ func connectMQTT(config Config, subscriptions []Subscription) error {
 		opts.SetClientID("mqtt-influxdb-" + hostname)
 		opts.SetCleanSession(true)
 	}
-
 
 	mqttClient = mqtt.NewClient(opts) // global
 
@@ -78,6 +75,13 @@ func unsubscribe() {
 	}
 }
 
+func registerSubscriptions(subscriptions []Subscription) {
+	for _, sub := range subscriptions {
+		mqttSubscriptions = append(mqttSubscriptions, sub)
+	}
+	logMQTTRegisteredSubscriptions()
+}
+
 // Connection handlers --------------------------------------------------------
 
 func connectionLost(client mqtt.Client, reason error) {
@@ -115,6 +119,10 @@ func logMQTTSubscribe(topic string) {
 
 func logMQTTUnsubscribe(topic string) {
 	LogInfo("MQTT unsubscribe from '%v'", topic)
+}
+
+func logMQTTRegisteredSubscriptions() {
+	LogInfo("MQTT registered subscriptions")
 }
 
 func logMQTTHandlingError(topic string, err error) {

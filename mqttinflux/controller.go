@@ -33,7 +33,7 @@ func Run(configPath string) error {
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt)
 
-	config, err := readConfig(configPath)
+	config, subscriptions, err := readSetup(configPath)
 	if err != nil {
 		return err
 	}
@@ -46,26 +46,46 @@ func Run(configPath string) error {
 		defer removePidFile(config.PidFile)
 	}
 
-	subscriptions, err := loadSubscriptions()
+	err = start(config, subscriptions)
 	if err != nil {
 		return err
 	}
-
-	err = startInflux(config)
-	if err != nil {
-		return err
-	}
-	defer stopInflux()
-
-	err = connectMQTT(config, subscriptions)
-	if err != nil {
-		return err
-	}
-	defer disconnectMQTT()
+	defer stop()
 
 	// wait for SIGINT
 	_ = <-s
 	return nil
+}
+
+// relaod configuration/subscriptions and re-subscribe to MQTT
+func reload(configPath string) error {
+	config, subscriptions, err := readSetup(configPath)
+	if err != nil {
+		return err
+	}
+	stop()
+	return start(config, subscriptions)
+
+}
+
+func start(config Config, subscriptions []Subscription) error {
+	err := connectMQTT(config, subscriptions)
+	if err != nil {
+		return err
+	}
+	err = startInflux(config)
+	if err != nil {
+		// redo the partial startup
+		disconnectMQTT()
+		return err
+	}
+
+	return nil
+}
+
+func stop() {
+	disconnectMQTT()
+	stopInflux()
 }
 
 func writePidFile(path string) error {
@@ -81,11 +101,24 @@ func writePidFile(path string) error {
 		return err
 	}
 
+	LogInfo("PID %v written to %q", pid, path)
 	return nil
 }
 
 func removePidFile(path string) {
+	LogInfo("remove PID file %q", path)
 	os.Remove(path)
+}
+
+func readSetup(configPath string) (Config, []Subscription, error) {
+	config, err := readConfig(configPath)
+	if err != nil {
+		return config, nil, err
+	}
+
+	subscriptions, err := loadSubscriptions()
+
+	return config, subscriptions, err
 }
 
 func readConfig(configPath string) (Config, error) {
