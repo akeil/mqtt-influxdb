@@ -25,6 +25,8 @@ var Version = ""
 // Commit reference.
 var Commit = ""
 
+var mqttService *MQTTService
+
 // Run starts the application.
 // The `Run()` function will subscribe to all configured MQTT topics
 // and wait for incoming messages until SIGINT is received.
@@ -103,18 +105,20 @@ func doReload(configPath string) error {
 	}
 	stop()
 	return start(config, subs)
-
 }
 
 func start(config Config, subs []Subscription) error {
-	err := connectMQTT(config, subs)
+	mqttService = NewMQTTService(config)
+	mqttService.Register(subs)
+	err := mqttService.Connect()
+	//err := connectMQTT(config, subs)
 	if err != nil {
 		return err
 	}
-	err = startInflux(config)
+	err = startInflux(config, mqttService)
 	if err != nil {
 		// redo the partial startup
-		disconnectMQTT()
+		mqttService.Disconnect()
 		return err
 	}
 
@@ -122,7 +126,7 @@ func start(config Config, subs []Subscription) error {
 }
 
 func stop() {
-	disconnectMQTT()
+	mqttService.Disconnect()
 	stopInflux()
 }
 

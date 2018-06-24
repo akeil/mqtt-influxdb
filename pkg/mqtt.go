@@ -7,19 +7,27 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-var mqttClient mqtt.Client
-var mqttSubscriptions = make([]Subscription, 0)
+// MQTTService manages subscriptions and the connection to the MQTT broker.
+type MQTTService struct {
+	uri    string
+	subs   []Subscription
+	client mqtt.Client
+}
 
-func connectMQTT(config Config, subscriptions []Subscription) error {
-	registerSubscriptions(subscriptions)
-
+// NewMQTTService creates a new MQTTService based on the given `config`.
+func NewMQTTService(config Config) *MQTTService {
 	uri := fmt.Sprintf("tcp://%v:%v", config.MQTTHost, config.MQTTPort)
+	service := &MQTTService{
+		uri:  uri,
+		subs: make([]Subscription, 0),
+	}
+
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(uri)
 	opts.SetUsername(config.MQTTUser)
 	opts.SetPassword(config.MQTTPass)
-	opts.OnConnect = connected
-	opts.OnConnectionLost = connectionLost
+	opts.OnConnect = service.OnConnect
+	opts.OnConnectionLost = service.OnConnectionLost
 
 	hostname, err := os.Hostname()
 	if err == nil {
@@ -27,32 +35,38 @@ func connectMQTT(config Config, subscriptions []Subscription) error {
 		opts.SetCleanSession(true)
 	}
 
-	mqttClient = mqtt.NewClient(opts) // global
+	service.client = mqtt.NewClient(opts)
 
-	logMQTTConnecting(uri)
-	t := mqttClient.Connect()
+	return service
+}
+
+// Connect attempts to connect to the MQTT broker.
+func (m *MQTTService) Connect() error {
+	logMQTTConnecting(m.uri)
+	t := m.client.Connect()
 	t.Wait() // no timeout
 	return t.Error()
 }
 
-func disconnectMQTT() {
-	if mqttClient != nil {
-		if mqttClient.IsConnected() {
-			logMQTTDisconnect()
-			unsubscribe()
-			mqttClient.Disconnect(250) // 250 millis cleanup time
-		}
+// Disconnect closes the connection to the MQTT server
+// and clears all subscribtions.
+func (m *MQTTService) Disconnect() {
+	if m.client.IsConnected() {
+		logMQTTDisconnect()
+		m.unsubscribe()
+		m.client.Disconnect(250) // 250 millis cleanup time
 	}
-	clearSubscriptions()
+	m.clearSubscriptions()
 }
 
-func subscribe() error {
+// Subscribe to all registered subscribtions.
+func (m *MQTTService) subscribe() error {
 	var err error
 	qos := byte(0)
-	for _, sub := range mqttSubscriptions {
+	for _, sub := range m.subs {
 		logMQTTSubscribe(sub.Topic)
 		s := sub // local var for scope
-		t := mqttClient.Subscribe(s.Topic, qos, func(c mqtt.Client, m mqtt.Message) {
+		t := m.client.Subscribe(s.Topic, qos, func(c mqtt.Client, m mqtt.Message) {
 			handlingError := s.Handle(m.Topic(), string(m.Payload()))
 			if handlingError != nil {
 				logMQTTHandlingError(m.Topic(), handlingError)
@@ -67,37 +81,38 @@ func subscribe() error {
 	return nil
 }
 
-func unsubscribe() {
-	if mqttClient != nil {
-		for _, sub := range mqttSubscriptions {
-			logMQTTUnsubscribe(sub.Topic)
-			mqttClient.Unsubscribe(sub.Topic)
-		}
+func (m *MQTTService) unsubscribe() {
+	for _, sub := range m.subs {
+		logMQTTUnsubscribe(sub.Topic)
+		m.client.Unsubscribe(sub.Topic)
 	}
 }
 
-func registerSubscriptions(subscriptions []Subscription) {
-	for _, sub := range subscriptions {
-		mqttSubscriptions = append(mqttSubscriptions, sub)
+// Register the given subscriptions. The MQTT service will subscribe to the
+// respective topics as soon as it is connected to the broker.
+func (m *MQTTService) Register(subs []Subscription) {
+	// TODO: subscribe to broker *now* if we are connected
+	for _, sub := range subs {
+		m.subs = append(m.subs, sub)
 	}
 	logMQTTRegisteredSubscriptions()
 }
 
-func clearSubscriptions() {
-	mqttSubscriptions = make([]Subscription, 0)
+func (m *MQTTService) clearSubscriptions() {
+	m.subs = make([]Subscription, 0)
 }
 
-// Connection handlers --------------------------------------------------------
-
-func connectionLost(client mqtt.Client, reason error) {
-	logMQTTConnectionLost(reason)
-}
-
-func connected(client mqtt.Client) {
-	opts := client.OptionsReader()
+// OnConnect is the callback for an established connection.
+func (m *MQTTService) OnConnect(c mqtt.Client) {
+	opts := c.OptionsReader()
 	logMQTTConnected(opts.Servers()[0].String())
 
-	subscribe()
+	m.subscribe()
+}
+
+// OnConnectionLost is the callback for a lost connection.
+func (m *MQTTService) OnConnectionLost(c mqtt.Client, reason error) {
+	logMQTTConnectionLost(reason)
 }
 
 // Logging --------------------------------------------------------------------

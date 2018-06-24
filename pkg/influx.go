@@ -22,7 +22,7 @@ var influxDefaultDB string
 var influxUser string
 var influxPass string
 
-func startInflux(config Config) error {
+func startInflux(config Config, mqtt *MQTTService) error {
 	influxUser = config.InfluxUser
 	influxPass = config.InfluxPass
 	influxDefaultDB = config.InfluxDB
