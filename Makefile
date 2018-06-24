@@ -1,8 +1,8 @@
 BINARY  = ./cmd/mfx
 BINDIR  = ./bin
 ARMDIR  = $(BINDIR)/linux/arm
-PKG     = ./mqttinflux
-QPKG	= akeil.net/akeil/mqtt-influxdb/mqttinflux
+PKG     = ./pkg
+QPKG	= akeil.net/akeil/mqtt-influxdb/pkg
 VERSION = $(shell cat VERSION)
 COMMIT	= $(shell git describe --always --long --dirty)
 
