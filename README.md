@@ -109,7 +109,7 @@ A file with a single Subscription might look like this:
     "database": "stats",
     "tags": {
       "device": "thermostat",
-      "room": "{{.Part 1}}"
+      "room": "{{.Topic 1}}"
     },
     "conversion": {
       "kind": "float",
@@ -140,14 +140,14 @@ is used.
 ### Dynamic Values for Measurements or Tags
 The values for the measurement and tags can be determined dynamically from the
 MQTT topic. This is useful if the topic contains wildcards.
-To get the *nth* element from the topic path, use the `{{.Part n}}` template.
+To get the *nth* element from the topic path, use the `{{.Topic n}}` template.
 The path index is zero-based.
 Examples:
 
-| Template                  | Topic       | Result    |
-|---------------------------|-------------|-----------|
-| `{{.Part 1}} `            | foo/bar/baz | "bar"     |
-| `{{.Part 1}}-{{.Part 0}}` | foo/bar/baz | "bar-foo" |
+| Template                    | Topic       | Result    |
+|-----------------------------|-------------|-----------|
+| `{{.Topic 1}} `             | foo/bar/baz | "bar"     |
+| `{{.Topic 1}}-{{.Topic 0}}` | foo/bar/baz | "bar-foo" |
 
 
 ## Conversions

@@ -77,13 +77,13 @@ func TestMeasurementValue(t *testing.T) {
 
 // Template Context -----------------------------------------------------------
 
-func TestTemplatePart(t *testing.T) {
+func TestTemplateTopic(t *testing.T) {
 	tags := map[string]string{
-		"invalid": "{{.Part 4}}",
+		"invalid": "{{.Topic 4}}",
 	}
 	s := Subscription{
 		Topic:       "foo/bar/baz",
-		Measurement: "{{.Part 2}}",
+		Measurement: "{{.Topic 2}}",
 		Tags:        tags,
 	}
 

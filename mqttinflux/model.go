@@ -118,22 +118,22 @@ func (s *Subscription) fillTemplate(name string, ctx TemplateContext) (string, e
 
 // A TemplateContext provides data for placeholders in templates.
 type TemplateContext struct {
-	Topic   string
-	Payload string
-	Parts   []string
+	FullTopic string
+	Payload   string
+	Parts     []string
 }
 
 // NewTemplateContext creates a new TemplateContext from an MQTT message.
 func NewTemplateContext(topic, payload string) TemplateContext {
 	return TemplateContext{
-		Topic:   topic,
-		Payload: payload,
-		Parts:   strings.Split(topic, "/"),
+		FullTopic: topic,
+		Payload:   payload,
+		Parts:     strings.Split(topic, "/"),
 	}
 }
 
-// Part returns a part from the MQTT topic.
-func (ctx *TemplateContext) Part(index int) (string, error) {
+// Topic returns a part from the MQTT topic.
+func (ctx *TemplateContext) Topic(index int) (string, error) {
 	if index >= len(ctx.Parts) {
 		return "", errors.New("Topic index out of range")
 	}
