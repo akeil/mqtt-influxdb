@@ -25,3 +25,6 @@ install:
 
 test:
 	go test $(PKG)
+
+deps:
+	go get -u github.com/eclipse/paho.mqtt.golang
