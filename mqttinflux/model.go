@@ -83,7 +83,7 @@ func (s *Subscription) Handle(topic, payload string) error {
 	if err != nil {
 		return err
 	}
-	submitMeasurement(&m)
+	submit(&m)
 	return nil
 }
 

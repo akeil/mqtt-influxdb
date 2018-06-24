@@ -25,13 +25,12 @@ package mqttinflux
 //    Go: %q, double quotes incl. escape
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 )
 
-// Converter function
+// Converter is the type for a converter function.
 type Converter func(raw string, params *Conversion) (string, error)
 
 var converters map[string]Converter
@@ -46,7 +45,7 @@ func init() {
 	converters["on-off"] = OnOff
 }
 
-// Conversion settings
+// Conversion parameters
 type Conversion struct {
 	Kind      string            `json:"kind"`
 	Precision int               `json:"precision"`
@@ -60,9 +59,9 @@ func (c *Conversion) Convert(raw string) (string, error) {
 
 	if c.Lookup != nil {
 		raw, err = c.translate(raw)
-	}
-	if err != nil {
-		return "", err
+		if err != nil {
+			return "", err
+		}
 	}
 
 	key := c.Kind
@@ -71,16 +70,17 @@ func (c *Conversion) Convert(raw string) (string, error) {
 	}
 	conv, ok := converters[key]
 	if !ok {
-		return "", errors.New("Conversion not supported")
+		return "", fmt.Errorf("conversion %q not supported", key)
 	}
 	return conv(raw, c)
 }
 
+// translate applies the Lookup map to the value
 func (c *Conversion) translate(raw string) (string, error) {
 	key := strings.TrimSpace(raw)
 	translated, found := c.Lookup[key]
 	if !found {
-		return "", errors.New("Lookup failed for " + key)
+		return "", fmt.Errorf("lookup failed for %q", key)
 	}
 	return translated, nil
 }
@@ -128,24 +128,10 @@ func Integer(raw string, params *Conversion) (string, error) {
 	return fmt.Sprintf("%di", parsed), nil
 }
 
-// String convetrst to a quoted string.
+// String converts to a quoted string.
 func String(raw string, params *Conversion) (string, error) {
 	return fmt.Sprintf("%q", raw), nil
 }
-
-/*
-func Round(raw string, params *Conversion) (string, error) {
-
-}
-
-func Ceil(raw string, params *Conversion) (string, error) {
-
-}
-
-func Floor(raw string, params *Conversion) (string, error) {
-
-}
-*/
 
 // Boolean converts to a boolean value.
 func Boolean(raw string, params *Conversion) (string, error) {
@@ -168,7 +154,7 @@ func OnOff(raw string, params *Conversion) (string, error) {
 	} else if s == "off" {
 		value = false
 	} else {
-		return "", errors.New("Expected on/off, got " + raw)
+		return "", fmt.Errorf("expected on/off, got %q", raw)
 	}
 	return fmt.Sprintf("%t", value), nil
 }

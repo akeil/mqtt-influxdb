@@ -2,7 +2,6 @@ package mqttinflux
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,11 +31,6 @@ var Commit = ""
 func Run(configPath string) error {
 	LogInfo("Starting %v Version %v (ref %v)", AppName, Version, Commit)
 
-	// setup channel to receive SIGINT (ctrl+c) or SIGHUP (reload)
-	s := make(chan os.Signal, 1)
-	signal.Notify(s, syscall.SIGINT)
-	signal.Notify(s, syscall.SIGHUP)
-
 	config, subscriptions, err := readSetup(configPath)
 	if err != nil {
 		return err
@@ -56,9 +50,12 @@ func Run(configPath string) error {
 	}
 	defer stop()
 
-	// wait for SIGHUP or SIGINT
+	// wait for SIGHUP (reload) or SIGINT (exit)
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, syscall.SIGINT)
+	signal.Notify(s, syscall.SIGHUP)
 	for sig := range s {
-		LogInfo("got signal %v", sig)
+		LogInfo("Got signal %v", sig)
 		if sig == syscall.SIGHUP {
 			err = doReload(configPath)
 			if err != nil {
@@ -82,7 +79,7 @@ func Reload(configPath string) error {
 		return err
 	}
 
-	LogInfo("read PID from %q", config.PidFile)
+	LogInfo("Read PID from %q", config.PidFile)
 	pid, err := readPidFile(config.PidFile)
 	if err != nil {
 		return err
@@ -97,20 +94,20 @@ func Reload(configPath string) error {
 	return proc.Signal(syscall.SIGHUP)
 }
 
-// relaod configuration/subscriptions and re-subscribe to MQTT
+// reload configuration/subscriptions and re-subscribe to MQTT
 func doReload(configPath string) error {
 	LogInfo("reloading...")
-	config, subscriptions, err := readSetup(configPath)
+	config, subs, err := readSetup(configPath)
 	if err != nil {
 		return err
 	}
 	stop()
-	return start(config, subscriptions)
+	return start(config, subs)
 
 }
 
-func start(config Config, subscriptions []Subscription) error {
-	err := connectMQTT(config, subscriptions)
+func start(config Config, subs []Subscription) error {
+	err := connectMQTT(config, subs)
 	if err != nil {
 		return err
 	}
@@ -147,7 +144,7 @@ func writePidFile(path string) error {
 }
 
 func removePidFile(path string) {
-	LogInfo("remove PID file %q", path)
+	LogInfo("Remove PID file %q", path)
 	os.Remove(path)
 }
 
@@ -169,9 +166,9 @@ func readSetup(configPath string) (Config, []Subscription, error) {
 		return config, nil, err
 	}
 
-	subscriptions, err := loadSubscriptions()
+	subs, err := readSubscriptions()
 
-	return config, subscriptions, err
+	return config, subs, err
 }
 
 func readConfig(configPath string) (Config, error) {
@@ -188,10 +185,12 @@ func readConfig(configPath string) (Config, error) {
 	}
 
 	var paths []string
-	required := configPath != ""
+	var required bool
 	if configPath != "" {
+		required = true
 		paths = []string{configPath}
 	} else {
+		required = false
 		currentUser, err := user.Current()
 		if err != nil {
 			return config, err
@@ -223,16 +222,16 @@ func readConfig(configPath string) (Config, error) {
 			}
 		}
 		found = true
-
 	}
 
+	// having no config file is ok, *unless* one was explicitly specified
 	if required && !found {
-		return config, errors.New("failed to read configuration")
+		return config, fmt.Errorf("failed to read configuration %q", configPath)
 	}
 	return config, nil
 }
 
-func loadSubscriptions() ([]Subscription, error) {
+func readSubscriptions() ([]Subscription, error) {
 	subs := make([]Subscription, 0)
 
 	currentUser, err := user.Current()
@@ -253,7 +252,7 @@ func loadSubscriptions() ([]Subscription, error) {
 		}
 		for _, file := range files {
 			fullPath := filepath.Join(dirname, file.Name())
-			results, err := loadSubscriptionFile(fullPath)
+			results, err := readSubscriptionFile(fullPath)
 			if err != nil {
 				return subs, err
 			}
@@ -266,7 +265,7 @@ func loadSubscriptions() ([]Subscription, error) {
 	return subs, nil
 }
 
-func loadSubscriptionFile(path string) ([]Subscription, error) {
+func readSubscriptionFile(path string) ([]Subscription, error) {
 	subs := make([]Subscription, 0)
 
 	f, err := os.Open(path)
@@ -284,6 +283,6 @@ func loadSubscriptionFile(path string) ([]Subscription, error) {
 		}
 	}
 
-	LogInfo("Loaded %d subscriptions from '%v'", len(subs), path)
+	LogInfo("Read %d subscriptions from '%v'", len(subs), path)
 	return subs, nil
 }

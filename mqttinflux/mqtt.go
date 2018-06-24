@@ -43,6 +43,7 @@ func disconnectMQTT() {
 			mqttClient.Disconnect(250) // 250 millis cleanup time
 		}
 	}
+	clearSubscriptions()
 }
 
 func subscribe() error {
@@ -73,7 +74,6 @@ func unsubscribe() {
 			mqttClient.Unsubscribe(sub.Topic)
 		}
 	}
-	mqttSubscriptions = make([]Subscription, 0)
 }
 
 func registerSubscriptions(subscriptions []Subscription) {
@@ -81,6 +81,10 @@ func registerSubscriptions(subscriptions []Subscription) {
 		mqttSubscriptions = append(mqttSubscriptions, sub)
 	}
 	logMQTTRegisteredSubscriptions()
+}
+
+func clearSubscriptions() {
+	mqttSubscriptions = make([]Subscription, 0)
 }
 
 // Connection handlers --------------------------------------------------------

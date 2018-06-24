@@ -39,7 +39,9 @@ func stopInflux() {
 	// TODO stop worker - opt: wait for complete
 }
 
-func submitMeasurement(m *Measurement) {
+// submit a Measurement to the InfluxDB send queue.
+// It will be sent asynchronously.
+func submit(m *Measurement) {
 	influxQueue <- m
 }
 
@@ -50,13 +52,13 @@ func send(m *Measurement) error {
 	}
 
 	// DB name from measurement or default
-	var database string
+	var dbName string
 	if m.Database != "" {
-		database = m.Database
+		dbName = m.Database
 	} else {
-		database = influxDefaultDB
+		dbName = influxDefaultDB
 	}
-	url := fmt.Sprintf("%v?db=%v", influxURL, database)
+	url := fmt.Sprintf("%v?db=%v", influxURL, dbName)
 
 	body := strings.NewReader(m.Format() + "\n")
 	req, err := http.NewRequest("POST", url, body)
@@ -73,15 +75,15 @@ func send(m *Measurement) error {
 	if res.StatusCode == 200 || res.StatusCode == 204 {
 		return nil
 	}
-	LogWarning("Got error for request (DB=%q): %q", database, m.Format())
+	LogWarning("Got error for request (DB=%q): %q", dbName, m.Format())
 	return fmt.Errorf("got HTTP %v", res.Status)
 }
 
 func work() {
 	for {
-		measurement, more := <-influxQueue
+		m, more := <-influxQueue
 		if more {
-			err := send(measurement)
+			err := send(m)
 			if err != nil {
 				logInfluxSendError(err)
 			}
