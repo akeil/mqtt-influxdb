@@ -67,10 +67,11 @@ func (m *MQTTService) subscribe() error {
 		logMQTTSubscribe(sub.Topic)
 		s := sub // local var for scope
 		t := m.client.Subscribe(s.Topic, qos, func(c mqtt.Client, m mqtt.Message) {
-			handlingError := s.Handle(m.Topic(), string(m.Payload()))
-			if handlingError != nil {
-				logMQTTHandlingError(m.Topic(), handlingError)
+			mmt, e := s.Read(m.Topic(), string(m.Payload()))
+			if e != nil {
+				logMQTTHandlingError(m.Topic(), e)
 			}
+			submit(&mmt)
 		})
 		t.Wait() // no timeout
 		err = t.Error()

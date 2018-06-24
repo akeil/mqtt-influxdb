@@ -208,7 +208,7 @@ func TestHandleCSV(t *testing.T) {
 		},
 	}
 
-	m, err := s.readMeasurement("foo/bar", "123,456")
+	m, err := s.Read("foo/bar", "123,456")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestCSVCustomSeparator(t *testing.T) {
 		CSVSeparator: ";",
 	}
 
-	m, err := s.readMeasurement("foo/bar", "123;456")
+	m, err := s.Read("foo/bar", "123;456")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestCSVCustomSeparator(t *testing.T) {
 
 	// invalid separator
 	s.CSVSeparator = "++" // multiple chars
-	_, err = s.readMeasurement("foo/bar", "123;456")
+	_, err = s.Read("foo/bar", "123;456")
 	if err == nil {
 		t.Error("Expected error, got ok")
 	}

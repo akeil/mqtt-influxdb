@@ -77,17 +77,8 @@ func (s *Subscription) parseTemplates() error {
 	return nil
 }
 
-// Handle an incoming message for the given topic.
-func (s *Subscription) Handle(topic, payload string) error {
-	m, err := s.readMeasurement(topic, payload)
-	if err != nil {
-		return err
-	}
-	submit(&m)
-	return nil
-}
-
-func (s *Subscription) readMeasurement(topic, payload string) (Measurement, error) {
+// Read a Measurement from the given MQTT topic and payload.
+func (s *Subscription) Read(topic, payload string) (Measurement, error) {
 	var m Measurement
 	err := s.parseTemplates()
 	if err != nil {
