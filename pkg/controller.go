@@ -108,16 +108,17 @@ func doReload(configPath string) error {
 }
 
 func start(config Config, subs []Subscription) error {
-	mqttService = NewMQTTService(config)
-	mqttService.Register(subs)
-	err := mqttService.Connect()
+	err := startInflux(config)
 	if err != nil {
 		return err
 	}
-	err = startInflux(config)
+
+	mqttService = NewMQTTService(config)
+	mqttService.Register(subs)
+	err = mqttService.Connect()
 	if err != nil {
 		// redo the partial startup
-		mqttService.Disconnect()
+		stopInflux()
 		return err
 	}
 
