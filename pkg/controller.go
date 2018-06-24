@@ -111,11 +111,10 @@ func start(config Config, subs []Subscription) error {
 	mqttService = NewMQTTService(config)
 	mqttService.Register(subs)
 	err := mqttService.Connect()
-	//err := connectMQTT(config, subs)
 	if err != nil {
 		return err
 	}
-	err = startInflux(config, mqttService)
+	err = startInflux(config)
 	if err != nil {
 		// redo the partial startup
 		mqttService.Disconnect()
