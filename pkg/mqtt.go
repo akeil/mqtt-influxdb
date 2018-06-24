@@ -12,14 +12,16 @@ type MQTTService struct {
 	uri    string
 	subs   []Subscription
 	client mqtt.Client
+	influx *InfluxService
 }
 
 // NewMQTTService creates a new MQTTService based on the given `config`.
-func NewMQTTService(config Config) *MQTTService {
+func NewMQTTService(config Config, influx *InfluxService) *MQTTService {
 	uri := fmt.Sprintf("tcp://%v:%v", config.MQTTHost, config.MQTTPort)
 	service := &MQTTService{
-		uri:  uri,
-		subs: make([]Subscription, 0),
+		uri:    uri,
+		subs:   make([]Subscription, 0),
+		influx: influx,
 	}
 
 	opts := mqtt.NewClientOptions()
@@ -66,12 +68,12 @@ func (m *MQTTService) subscribe() error {
 	for _, sub := range m.subs {
 		logMQTTSubscribe(sub.Topic)
 		s := sub // local var for scope
-		t := m.client.Subscribe(s.Topic, qos, func(c mqtt.Client, m mqtt.Message) {
-			mmt, e := s.Read(m.Topic(), string(m.Payload()))
+		t := m.client.Subscribe(s.Topic, qos, func(c mqtt.Client, msg mqtt.Message) {
+			mmt, e := s.Read(msg.Topic(), string(msg.Payload()))
 			if e != nil {
-				logMQTTHandlingError(m.Topic(), e)
+				logMQTTHandlingError(msg.Topic(), e)
 			}
-			submit(&mmt)
+			m.influx.Submit(&mmt)
 		})
 		t.Wait() // no timeout
 		err = t.Error()

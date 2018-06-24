@@ -26,6 +26,7 @@ var Version = ""
 var Commit = ""
 
 var mqttService *MQTTService
+var influxService *InfluxService
 
 // Run starts the application.
 // The `Run()` function will subscribe to all configured MQTT topics
@@ -108,17 +109,18 @@ func doReload(configPath string) error {
 }
 
 func start(config Config, subs []Subscription) error {
-	err := startInflux(config)
+	influxService = NewInfluxService(config)
+	err := influxService.Start()
 	if err != nil {
 		return err
 	}
 
-	mqttService = NewMQTTService(config)
+	mqttService = NewMQTTService(config, influxService)
 	mqttService.Register(subs)
 	err = mqttService.Connect()
 	if err != nil {
 		// redo the partial startup
-		stopInflux()
+		influxService.Stop()
 		return err
 	}
 
@@ -127,7 +129,7 @@ func start(config Config, subs []Subscription) error {
 
 func stop() {
 	mqttService.Disconnect()
-	stopInflux()
+	influxService.Stop()
 }
 
 func writePidFile(path string) error {

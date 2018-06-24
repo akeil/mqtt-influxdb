@@ -7,45 +7,72 @@ import (
 	"strings"
 )
 
-var dbNamePattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
-var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
-var fieldPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+var (
+	dbNamePattern      = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+	measurementPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+	fieldPattern       = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+	tagPattern         = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
+	tagValuePattern    = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]+$")
+)
 
-//var valuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]*$")
-var tagPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
-var tagValuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]+$")
+// InfluxService represents an InfluxDB instance.
+type InfluxService struct {
+	queue     chan *Measurement
+	client    *http.Client
+	url       string
+	defaultDB string
+	user      string
+	pass      string
+}
 
-var influxQueue = make(chan *Measurement, 32)
-var influxClient http.Client
-var influxURL string
-var influxDefaultDB string
-var influxUser string
-var influxPass string
-
-func startInflux(config Config) error {
-	influxUser = config.InfluxUser
-	influxPass = config.InfluxPass
-	influxDefaultDB = config.InfluxDB
-	influxURL = fmt.Sprintf("http://%v:%v/write", config.InfluxHost,
+// NewInfluxService creates a new InfluxService with the given config.
+func NewInfluxService(config Config) *InfluxService {
+	url := fmt.Sprintf("http://%v:%v/write", config.InfluxHost,
 		config.InfluxPort)
+	service := &InfluxService{
+		queue:     make(chan *Measurement, 32),
+		client:    &http.Client{},
+		url:       url,
+		user:      config.InfluxUser,
+		pass:      config.InfluxPass,
+		defaultDB: config.InfluxDB,
+	}
 
-	logInfluxSettings(influxURL)
+	logInfluxSettings(url)
 
-	go work()
+	return service
+}
+
+// Start sending measurements to the InfluxDB.
+func (ifx *InfluxService) Start() error {
+	go ifx.work()
 	return nil
 }
 
-func stopInflux() {
+// Stop sending measurements to the InfluxDB.
+func (ifx *InfluxService) Stop() {
 	// TODO stop worker - opt: wait for complete
 }
 
-// submit a Measurement to the InfluxDB send queue.
+// Submit a Measurement to the InfluxDB send queue.
 // It will be sent asynchronously.
-func submit(m *Measurement) {
-	influxQueue <- m
+func (ifx *InfluxService) Submit(m *Measurement) {
+	ifx.queue <- m
 }
 
-func send(m *Measurement) error {
+func (ifx *InfluxService) work() {
+	for {
+		m, more := <-ifx.queue
+		if more {
+			err := ifx.send(m)
+			if err != nil {
+				logInfluxSendError(err)
+			}
+		}
+	}
+}
+
+func (ifx *InfluxService) send(m *Measurement) error {
 	err := m.Validate()
 	if err != nil {
 		return err
@@ -56,18 +83,18 @@ func send(m *Measurement) error {
 	if m.Database != "" {
 		dbName = m.Database
 	} else {
-		dbName = influxDefaultDB
+		dbName = ifx.defaultDB
 	}
-	url := fmt.Sprintf("%v?db=%v", influxURL, dbName)
+	url := fmt.Sprintf("%v?db=%v", ifx.url, dbName)
 
 	body := strings.NewReader(m.Format() + "\n")
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(influxUser, influxPass)
+	req.SetBasicAuth(ifx.user, ifx.pass)
 
-	res, err := influxClient.Do(req)
+	res, err := ifx.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -77,18 +104,6 @@ func send(m *Measurement) error {
 	}
 	LogWarning("Got error for request (DB=%q): %q", dbName, m.Format())
 	return fmt.Errorf("got HTTP %v", res.Status)
-}
-
-func work() {
-	for {
-		m, more := <-influxQueue
-		if more {
-			err := send(m)
-			if err != nil {
-				logInfluxSendError(err)
-			}
-		}
-	}
 }
 
 // Logging --------------------------------------------------------------------
