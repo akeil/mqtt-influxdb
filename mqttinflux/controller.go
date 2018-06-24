@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"syscall"
 )
 
@@ -58,7 +59,7 @@ func Run(configPath string) error {
 	for sig := range s {
 		LogInfo("got signal %v", sig)
 		if sig == syscall.SIGHUP {
-			err = reload(configPath)
+			err = doReload(configPath)
 			if err != nil {
 				return err
 			}
@@ -70,8 +71,32 @@ func Run(configPath string) error {
 	return nil
 }
 
+// Reload configuration for another running instance of mqtt-influxdb.
+//
+// This is done by reading the pidfile (path taken from config)
+// and sending a SIGHUP to that process.
+func Reload(configPath string) error {
+	config, err := readConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	pid, err := readPidFile(config.PidFile)
+	if err != nil {
+		return err
+	}
+
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+
+	LogInfo("Sending SIGHUP to process %v", pid)
+	return proc.Signal(syscall.SIGHUP)
+}
+
 // relaod configuration/subscriptions and re-subscribe to MQTT
-func reload(configPath string) error {
+func doReload(configPath string) error {
 	LogInfo("reloading...")
 	config, subscriptions, err := readSetup(configPath)
 	if err != nil {
@@ -122,6 +147,18 @@ func writePidFile(path string) error {
 func removePidFile(path string) {
 	LogInfo("remove PID file %q", path)
 	os.Remove(path)
+}
+
+func readPidFile(path string) (int, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return 0, err
+	}
+
+	raw := string(data)
+	pid, err := strconv.ParseInt(raw, 10, 32)
+
+	return int(pid), err
 }
 
 func readSetup(configPath string) (Config, []Subscription, error) {

@@ -2,6 +2,46 @@
 Subscribe to [MQTT](https://mqtt.org/) topics
 and submit messages as measurements to [InfluxDB](https://www.influxdata.com/time-series-platform/influxdb/).
 
+## Command Line
+To start the MQTT-InfluxDB with default parameters in a terminal:
+
+```sh
+$ mfx
+```
+
+Use `-c` to run with a different configuration file:
+
+```sh
+$ mfx -c /path/to/config.json
+```
+
+The `-v` switch will print the version number and then exit:
+
+```sh
+$ mfx -v
+mqtt-influxdb 0.1.2
+```
+
+
+### Reload Configuration
+To reload the configuration file and subscriptions, use `-r`:
+
+```sh
+$ mfx -r
+```
+
+Or send a `SIGHUP` signal:
+```sh
+$ kill -s SIGHUP $PID
+```
+
+The `PID` can be obtained from the *pidfile* (see configuration).
+
+**Note:** The `-r` command will look at the *pidfile* to determine which
+process to send a `SIGHUP`.
+If you did not configure a pidfile or if you have changed the location of the
+pidfile, `-r` will not work.
+
 
 ## Configuration
 Configuration files are stored at
