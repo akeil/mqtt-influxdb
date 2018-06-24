@@ -49,7 +49,7 @@ Configuration keys and default values:
 | influxPort | 8086      | Port for InfluxDB                                 |
 | influxUser | *empty*   | Username for authenticating against InfluxDB      |
 | influxPass | *empty*   | Password (clear) for InfluxDB                     |
-| influxDB   | default   | Name of the InfluxDB database                     |
+| influxDB   | default   | Name of the default InfluxDB database             |
 
 
 ## Subscriptions
@@ -66,6 +66,7 @@ A file with a single Subscription might look like this:
   {
     "topic": "home/+/thermostat/status/actual_temperature",
     "measurement": "temperature",
+    "database": "stats",
     "tags": {
       "device": "thermostat",
       "room": "{{.Part 1}}"
@@ -80,17 +81,20 @@ A file with a single Subscription might look like this:
 
 Each subscription defines a single MQTT *topic* (possibly using wildcards)
 to subscribe to and an InfluxDB *measurement* to submit values to.
-Optionally a *conversion* can be specified.
+Optionally a *database* and a *conversion* can be specified.
+If no database name is specified, the default DB from the global configuration
+is used.
 
-| Key                   | Description                           |
-|-----------------------|---------------------------------------|
-| `topic`               | The MQTT topic to subscribe to        |
-| `measurement`         | The name of the InfluxDB measurement  |
-| `tags`                | A map with tag names and their values |
-| `tags.[TAG]`          | a tag name and the tag value          |
-| `conversion`          | Conversion details                    |
-| `conversion.kind`     | The type of conversion to apply       |
-| `conversion.[OPTION]` | Conversion options, depends on `kind` |
+| Key                   | Description                               |
+|-----------------------|-------------------------------------------|
+| `topic`               | The MQTT topic to subscribe to            |
+| `measurement`         | The name of the InfluxDB measurement      |
+| `database`            | *optional*, InfluxDB database to write to |
+| `tags`                | A map with tag names and their values     |
+| `tags.[TAG]`          | a tag name and the tag value              |
+| `conversion`          | Conversion details                        |
+| `conversion.kind`     | The type of conversion to apply           |
+| `conversion.[OPTION]` | Conversion options, depends on `kind`     |
 
 
 ### Dynamic Values for Measurements or Tags

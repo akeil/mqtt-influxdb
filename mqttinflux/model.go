@@ -27,9 +27,16 @@ type Config struct {
 
 // Subscription describes a single subscription to an MQTT topic.
 // the topic can contain wildcards.
+//
+// Topic: The MQTT topic to subscribe to
+// Measurement: The InfluxDB measurement to wubmit to
+// Database (optional): the name of the InfluxDB database. By default, the DB
+//     from `Config` is used.
+// Conversion: how to convert values from MQTT to InfluxDB.
 type Subscription struct {
 	Topic           string            `json:"topic"`
 	Measurement     string            `json:"measurement"`
+	Database        string            `json:"database"`
 	Tags            map[string]string `json:"tags"`
 	Conversion      Conversion        `json:"conversion"`
 	cachedTemplates map[string]*template.Template
@@ -73,7 +80,7 @@ func (s *Subscription) Handle(topic string, payload string) error {
 	if err != nil {
 		return err
 	}
-	m := NewMeasurement(measurementName)
+	m := NewMeasurement(s.Database, measurementName)
 
 	converted, err := s.Conversion.Convert(payload)
 	if err != nil {
@@ -173,15 +180,18 @@ func (ctx *TemplateContext) JSON(path string) (string, error) {
 
 // Measurement is a single measurement to be submitted to InfluxDB.
 type Measurement struct {
+	Database  string
 	Name      string
 	Timestamp time.Time
 	Values    map[string]string
 	Tags      map[string]string
 }
 
-// NewMeasurement creates a new measurement with the given `name`.
-func NewMeasurement(name string) Measurement {
+// NewMeasurement creates a new measurement for the given `database`
+// and with the given `name`.
+func NewMeasurement(database, name string) Measurement {
 	m := Measurement{
+		Database:  database,
 		Name:      name,
 		Timestamp: time.Now(),
 		Values:    make(map[string]string, 0),
@@ -242,6 +252,12 @@ func (m *Measurement) Format() string {
 
 // Validate this measurement.
 func (m *Measurement) Validate() error {
+	if m.Database != "" {
+		if !dbNamePattern.MatchString(m.Database) {
+			return errors.New("Invalid database name")
+		}
+	}
+
 	if !measurementPattern.MatchString(m.Name) {
 		return errors.New("Invalid measurement name")
 	}

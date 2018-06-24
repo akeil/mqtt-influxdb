@@ -6,15 +6,23 @@ import (
 )
 
 func TestMeasurementName(t *testing.T) {
-	m := NewMeasurement("m & m")
+	m := NewMeasurement("db", "m & m")
 	err := m.Validate()
 	if err == nil {
 		t.Error("Expected error for invalid measurement name")
 	}
 }
 
+func TestMeasurementDBName(t *testing.T) {
+	m := NewMeasurement("?invalid db", "m")
+	err := m.Validate()
+	if err == nil {
+		t.Error("Expected error for invalid database name")
+	}
+}
+
 func TestMeasurementTag(t *testing.T) {
-	m := NewMeasurement("m")
+	m := NewMeasurement("db", "m")
 	m.SetValue("1")
 	m.Tag("foo", "bar")
 	s := m.Format()
@@ -31,7 +39,7 @@ func TestMeasurementTag(t *testing.T) {
 	}
 
 	// invalid tag name
-	m = NewMeasurement("m")
+	m = NewMeasurement("db", "m")
 	m.SetValue("1")
 	m.Tag("foo", "baz=bar")
 	err = m.Validate()
@@ -41,7 +49,7 @@ func TestMeasurementTag(t *testing.T) {
 }
 
 func TestMeasurementValue(t *testing.T) {
-	m := NewMeasurement("m")
+	m := NewMeasurement("db", "m")
 
 	err := m.Validate()
 	if err == nil {

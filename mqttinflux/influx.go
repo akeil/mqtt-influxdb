@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+var dbNamePattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
 var measurementPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
 var fieldPattern = regexp.MustCompile("^[a-zA-Z0-9\\-_\\.]+$")
 
@@ -17,14 +18,16 @@ var tagValuePattern = regexp.MustCompile("^[a-zA-Z0-9:;\\-_\\.]+$")
 var influxQueue = make(chan *Measurement, 32)
 var influxClient http.Client
 var influxURL string
+var influxDefaultDB string
 var influxUser string
 var influxPass string
 
 func startInflux(config Config) error {
 	influxUser = config.InfluxUser
 	influxPass = config.InfluxPass
-	influxURL = fmt.Sprintf("http://%v:%v/write?db=%v",
-		config.InfluxHost, config.InfluxPort, config.InfluxDB)
+	influxDefaultDB = config.InfluxDB
+	influxURL = fmt.Sprintf("http://%v:%v/write", config.InfluxHost,
+		config.InfluxPort)
 
 	logInfluxSettings(influxURL)
 
@@ -46,8 +49,17 @@ func send(m *Measurement) error {
 		return err
 	}
 
+	// DB name from measurement or default
+	var database string
+	if m.Database != "" {
+		database = m.Database
+	} else {
+		database = influxDefaultDB
+	}
+	url := fmt.Sprintf("%v?db=%v", influxURL, database)
+
 	body := strings.NewReader(m.Format() + "\n")
-	req, err := http.NewRequest("POST", influxURL, body)
+	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return err
 	}
