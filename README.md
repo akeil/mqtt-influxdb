@@ -125,17 +125,18 @@ Optionally a *database* and a *conversion* can be specified.
 If no database name is specified, the default DB from the global configuration
 is used.
 
-| Key                   | Description                                     |
-|-----------------------|-------------------------------------------------|
-| `topic`               | The MQTT topic to subscribe to                  |
-| `measurement`         | The name of the InfluxDB measurement            |
-| `database`            | *optional*, InfluxDB database to write to       |
-| `tags`                | A map with tag names and their values           |
-| `tags.[TAG]`          | a tag name and the tag value                    |
-| `value`               | *optional*, method for handling complex payload |
-| `conversion`          | Conversion details                              |
-| `conversion.kind`     | The type of conversion to apply                 |
-| `conversion.[OPTION]` | Conversion options, depends on `kind`           |
+| Key                   | Description                                         |
+|-----------------------|-----------------------------------------------------|
+| `topic`               | The MQTT topic to subscribe to                      |
+| `measurement`         | The name of the InfluxDB measurement                |
+| `database`            | *optional*, InfluxDB database to write to           |
+| `tags`                | A map with tag names and their values               |
+| `tags.[TAG]`          | a tag name and the tag value                        |
+| `value`               | *optional* method for handling complex payload      |
+| `csvSeparator`        | *optional* separator for CSV payload (default: ",") |
+| `conversion`          | Conversion details                                  |
+| `conversion.kind`     | The type of conversion to apply                     |
+| `conversion.[OPTION]` | Conversion options, depends on `kind`               |
 
 
 ### Dynamic Values for Measurements or Tags

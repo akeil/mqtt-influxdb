@@ -41,6 +41,7 @@ type Subscription struct {
 	Database        string            `json:"database"`
 	Tags            map[string]string `json:"tags"`
 	Value           string            `json:"value"`
+	CSVSeparator    string            `json:"csvSeparator"`
 	Conversion      Conversion        `json:"conversion"`
 	cachedTemplates map[string]*template.Template
 }
@@ -91,7 +92,7 @@ func (s *Subscription) readMeasurement(topic, payload string) (Measurement, erro
 		return m, err
 	}
 
-	ctx := NewTemplateContext(topic, payload)
+	ctx := NewTemplateContext(s, topic, payload)
 	measurementName, err := s.fillTemplate("measurement", ctx)
 	if err != nil {
 		return m, err
@@ -144,17 +145,19 @@ func (s *Subscription) fillTemplate(name string, ctx TemplateContext) (string, e
 
 // A TemplateContext provides data for placeholders in templates.
 type TemplateContext struct {
-	FullTopic string
-	Payload   string
-	Parts     []string
+	FullTopic    string
+	Payload      string
+	Parts        []string
+	subscription *Subscription
 }
 
 // NewTemplateContext creates a new TemplateContext from an MQTT message.
-func NewTemplateContext(topic, payload string) TemplateContext {
+func NewTemplateContext(subscription *Subscription, topic, payload string) TemplateContext {
 	return TemplateContext{
-		FullTopic: topic,
-		Payload:   payload,
-		Parts:     strings.Split(topic, "/"),
+		FullTopic:    topic,
+		Payload:      payload,
+		Parts:        strings.Split(topic, "/"),
+		subscription: subscription,
 	}
 }
 
@@ -208,6 +211,15 @@ func (ctx *TemplateContext) JSON(path string) (string, error) {
 func (ctx *TemplateContext) CSV(colIndex int) (string, error) {
 	payloadReader := strings.NewReader(ctx.Payload)
 	csvReader := csv.NewReader(payloadReader)
+	separator := ctx.subscription.CSVSeparator
+	if separator != "" {
+		runes := []rune(separator)
+		if len(runes) != 1 {
+			return "", fmt.Errorf("Invalid CSV separator %q", separator)
+		}
+		csvReader.Comma = runes[0]
+	}
+
 	records, err := csvReader.Read()
 	if err != nil {
 		return "", err

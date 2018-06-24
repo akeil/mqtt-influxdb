@@ -81,7 +81,7 @@ func TestTemplateTopic(t *testing.T) {
 	tags := map[string]string{
 		"invalid": "{{.Topic 4}}",
 	}
-	s := Subscription{
+	s := &Subscription{
 		Topic:       "foo/bar/baz",
 		Measurement: "{{.Topic 2}}",
 		Tags:        tags,
@@ -91,7 +91,7 @@ func TestTemplateTopic(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing template: %v", err)
 	}
-	ctx := NewTemplateContext("foo/bar/baz", "123")
+	ctx := NewTemplateContext(s, "foo/bar/baz", "123")
 
 	result, err := s.fillTemplate("measurement", ctx)
 	if err != nil {
@@ -126,7 +126,7 @@ func TestTemplateJSON(t *testing.T) {
 	    "bar": "value"
 	  }
     }`
-	ctx := NewTemplateContext("foo/bar/baz", json)
+	ctx := NewTemplateContext(s, "foo/bar/baz", json)
 
 	result, err := s.fillTemplate("tag.path", ctx)
 	if err != nil {
@@ -143,7 +143,7 @@ func TestTemplateJSON(t *testing.T) {
 	}
 
 	// invalid JSON
-	ctx2 := NewTemplateContext("foo/bar/baz", "this is not JSON")
+	ctx2 := NewTemplateContext(s, "foo/bar/baz", "this is not JSON")
 	result, err = s.fillTemplate("tag.path", ctx2)
 	if err == nil {
 		t.Error("Expected error, got OK")
@@ -160,7 +160,7 @@ func TestTemplateCSV(t *testing.T) {
 	}
 	expect := []string{"123", "5.5", "abc"}
 	csvPayload := "123,5.5,abc"
-	ctx := NewTemplateContext("foo/bar/baz", csvPayload)
+	ctx := NewTemplateContext(s, "foo/bar/baz", csvPayload)
 
 	for index, expected := range expect {
 		value, parseErr := ctx.CSV(index)
@@ -181,7 +181,7 @@ func TestTemplateCSV(t *testing.T) {
 }
 
 func TestTemplateInvalidCSV(t *testing.T) {
-	invalidCSV := NewTemplateContext("foo/bar/baz", "")
+	invalidCSV := NewTemplateContext(&Subscription{}, "foo/bar/baz", "")
 	_, err := invalidCSV.CSV(0)
 	if err == nil {
 		t.Error("Expected error, got OK")
@@ -205,5 +205,29 @@ func TestHandleCSV(t *testing.T) {
 
 	if m.Values["value"] != "456.0" {
 		t.Errorf("expected 456, got %v", err)
+	}
+}
+
+func TestCSVCustomSeparator(t *testing.T) {
+	s := &Subscription{
+		Value:        "CSV 1",
+		Measurement:  "test",
+		CSVSeparator: ";",
+	}
+
+	m, err := s.readMeasurement("foo/bar", "123;456")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	if m.Values["value"] != "456" {
+		t.Errorf("expected 456, got %v", err)
+	}
+
+	// invalid separator
+	s.CSVSeparator = "++" // multiple chars
+	_, err = s.readMeasurement("foo/bar", "123;456")
+	if err == nil {
+		t.Error("Expected error, got ok")
 	}
 }
