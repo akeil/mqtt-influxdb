@@ -32,7 +32,7 @@ var influxService *InfluxService
 // The `Run()` function will subscribe to all configured MQTT topics
 // and wait for incoming messages until SIGINT is received.
 func Run(configPath string) error {
-	LogInfo("Starting %v Version %v (ref %v)", AppName, Version, Commit)
+	logStartup()
 
 	config, subscriptions, err := readSetup(configPath)
 	if err != nil {
@@ -58,7 +58,7 @@ func Run(configPath string) error {
 	signal.Notify(s, syscall.SIGINT)
 	signal.Notify(s, syscall.SIGHUP)
 	for sig := range s {
-		LogInfo("Got signal %v", sig)
+		logSignal(sig)
 		if sig == syscall.SIGHUP {
 			err = doReload(configPath)
 			if err != nil {
@@ -82,7 +82,7 @@ func Reload(configPath string) error {
 		return err
 	}
 
-	LogInfo("Read PID from %q", config.PidFile)
+	logReadPID(config.PidFile)
 	pid, err := readPidFile(config.PidFile)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func Reload(configPath string) error {
 		return err
 	}
 
-	LogInfo("Sending SIGHUP to process %v", pid)
+	logSendSignal(syscall.SIGHUP, pid)
 	return proc.Signal(syscall.SIGHUP)
 }
 
@@ -145,13 +145,13 @@ func writePidFile(path string) error {
 		return err
 	}
 
-	LogInfo("PID %v written to %q", pid, path)
+	logPIDWritten(pid, path)
 	return nil
 }
 
 func removePidFile(path string) {
-	LogInfo("Remove PID file %q", path)
 	os.Remove(path)
+	logPIDRemoved(path)
 }
 
 func readPidFile(path string) (int, error) {
@@ -212,7 +212,7 @@ func readConfig(configPath string) (Config, error) {
 	for _, path := range paths {
 		f, err := os.Open(path)
 		if os.IsNotExist(err) {
-			LogInfo("No config found at '%v'", path)
+			logNoConfig(path)
 			continue
 		} else if err != nil {
 			return config, err
@@ -289,6 +289,40 @@ func readSubscriptionFile(path string) ([]Subscription, error) {
 		}
 	}
 
-	LogInfo("Read %d subscriptions from '%v'", len(subs), path)
+	logReadSubs(subs, path)
 	return subs, nil
+}
+
+// Logging --------------------------------------------------------------------
+
+func logStartup() {
+	LogInfo("Controller starting %v - version %v (ref %v)", AppName, Version, Commit)
+}
+
+func logSignal(sig os.Signal) {
+	LogInfo("Controller Received signal %v", sig)
+}
+
+func logReadSubs(subs []Subscription, path string) {
+	LogInfo("Controller read %d subscriptions from '%v'", len(subs), path)
+}
+
+func logNoConfig(path string) {
+	LogInfo("Controller no config found at '%v'", path)
+}
+
+func logPIDWritten(pid int, path string) {
+	LogInfo("Controller PID %v written to %q", pid, path)
+}
+
+func logPIDRemoved(path string) {
+	LogInfo("Controller removed PID file %q", path)
+}
+
+func logReadPID(path string) {
+	LogInfo("Controller read PID from %q", path)
+}
+
+func logSendSignal(sig os.Signal, pid int) {
+	LogInfo("Controller Sending signal %v to process %v", sig, pid)
 }

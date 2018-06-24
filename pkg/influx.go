@@ -102,8 +102,9 @@ func (ifx *InfluxService) send(m *Measurement) error {
 	if res.StatusCode == 200 || res.StatusCode == 204 {
 		return nil
 	}
-	LogWarning("Got error for request (DB=%q): %q", dbName, m.Format())
-	return fmt.Errorf("got HTTP %v", res.Status)
+
+	return fmt.Errorf("got HTTP status %v for DB=%q, req=&%q",
+		res.Status, dbName, m.Format())
 }
 
 // Logging --------------------------------------------------------------------
@@ -113,5 +114,5 @@ func logInfluxSettings(url string) {
 }
 
 func logInfluxSendError(err error) {
-	LogError("InfluxDB failed to send measurement: %v", err)
+	LogError("InfluxDB request error: %v", err)
 }
