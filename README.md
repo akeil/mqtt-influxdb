@@ -145,18 +145,22 @@ MQTT topic. This is useful if the topic contains wildcards.
 To get the *nth* element from the topic path, use the `{{.Topic n}}` template.
 The path index is zero-based.
 
-The measurement name or tags can also be read from a *CSV Payload* (see below)
-by using the `.CSV n` template function.
+The measurement name or tags can also be read from a CSV or JSON Payload
+(see below) by using the `.CSV n` or `.JSON [path]` template function.
+
 
 
 Examples:
 
-| Template                    | Topic       | Payload  | Result    |
-|-----------------------------|-------------|----------|-----------|
-| `{{.Topic 1}} `             | foo/bar/baz | *any*    | "bar"     |
-| `{{.Topic 1}}-{{.Topic 0}}` | foo/bar/baz | *any*    | "bar-foo" |
-| `{{.CSV 0}}`                | foo/bar/baz | abc,1,55 | "abc"     |
-| `{{.CSV 0}}-{{.Topic 1}}`   | foo/bar/baz | abc,1,55 | "abc-bar" |
+| Template                    | Topic       | Payload   | Result    |
+|-----------------------------|-------------|-----------|-----------|
+| `{{.Topic 1}} `             | foo/bar/baz | *any*     | "bar"     |
+| `{{.Topic 1}}-{{.Topic 0}}` | foo/bar/baz | *any*     | "bar-foo" |
+| `{{.CSV 0}}`                | foo/bar/baz | abc,1,55  | "abc"     |
+| `{{.CSV 0}}-{{.Topic 1}}`   | foo/bar/baz | abc,1,55  | "abc-bar" |
+| `{{.JSON \"foo.bar\"}}`         | foo/bar/baz | see below | see below |
+
+Refer to the section on *JSON Payload* section below to see how the JSON path works.
 
 
 ### CSV Payload
@@ -190,6 +194,52 @@ An MQTT message with a payload like this ...
 
 CSV payload does not support multiple lines.
 The value is always read from the first line of the message payload.
+
+
+### JSON Payload
+If the message payload is in JSON format, individual fields can be accessed
+with the `.JSON [path]` template function.
+The `path` is expressed with a `.` separated names (or indices for arrays).
+
+*Conversions* are applied after the value has been extracted from the MQTT
+message.
+
+```json
+{
+    "topic": "foo/bar",
+    "measurement": "mymeasurement",
+    "value": "JSON \"foo.bar.0.data\"",
+    "conversion": {
+      "kind": "float",
+      "precision": 1
+    }
+}
+```
+
+**Note:** You need to use escaped quotes around the `path` inside the JSON
+configuration file, e.g. `\"foo.bar.baz\"`.
+
+An MQTT message with a payload like this ...
+```json
+{
+    "foo": {
+        "bar": [
+            {
+                "name": "some name",
+                "data": 50
+            },
+            {
+                "name": "another entry",
+                "data": 1000
+            }
+        ]
+    }
+}
+```
+... would yield a value of `50.0`
+(i.e. `json["foo"]["bar"][0]["data"]`, converted to a float).
+
+This function uses the [jsonq](https://github.com/jmoiron/jsonq) package.
 
 
 ## Conversions

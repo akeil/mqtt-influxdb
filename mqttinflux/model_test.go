@@ -120,31 +120,41 @@ func TestTemplateJSON(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing template: %v", err)
 	}
-	json := `{
+	jsonPayload := `{
 	  "x": "y",
 	  "foo": {
-	    "bar": "value"
+	    "bar": "value",
+		"intvalue": 123,
+		"arr": [1, 2, 3]
 	  }
     }`
-	ctx := NewTemplateContext(s, "foo/bar/baz", json)
+	ctx := NewTemplateContext(s, "foo/bar/baz", jsonPayload)
 
-	result, err := s.fillTemplate("tag.path", ctx)
-	if err != nil {
-		t.Errorf("fill template: %v", err)
-	}
-	if result != "value" {
-		t.Errorf("Expected %v, got %v", "value", result)
+	cases := map[string]string{
+		"foo.bar":      "value",
+		"foo.intvalue": "123",
+		"foo.arr.1":    "2",
 	}
 
-	// non-existent json path
-	result, err = s.fillTemplate("tag.nonexist", ctx)
+	for path, expected := range cases {
+		result, parseErr := ctx.JSON(path)
+		if parseErr != nil {
+			t.Errorf("error reading JSON: %v", parseErr)
+		}
+
+		if result != expected {
+			t.Errorf("Expected %v, got %v", expected, result)
+		}
+	}
+
+	_, err = ctx.JSON("doesnotexist.foo.bar")
 	if err == nil {
-		t.Error("Expected error, got OK")
+		t.Error("Expected rror, got ok")
 	}
 
 	// invalid JSON
 	ctx2 := NewTemplateContext(s, "foo/bar/baz", "this is not JSON")
-	result, err = s.fillTemplate("tag.path", ctx2)
+	_, err = ctx2.JSON("tag.path")
 	if err == nil {
 		t.Error("Expected error, got OK")
 	}

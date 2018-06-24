@@ -28,3 +28,4 @@ test:
 
 deps:
 	go get -u github.com/eclipse/paho.mqtt.golang
+	go get -u github.com/jmoiron/jsonq

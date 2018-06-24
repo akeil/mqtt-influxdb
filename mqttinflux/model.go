@@ -10,6 +10,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/jmoiron/jsonq"
 )
 
 // Config settings.
@@ -170,7 +172,7 @@ func (ctx *TemplateContext) Topic(index int) (string, error) {
 	return ctx.Parts[index], nil
 }
 
-// JSON parses payload as JSON
+// JSON parses payload as JSON using jsonq
 // and gets a value from the resulting data structure
 //
 // `path` is a dotted path to access nested maps.
@@ -184,27 +186,15 @@ func (ctx *TemplateContext) JSON(path string) (string, error) {
 	}
 
 	parts := strings.Split(path, ".")
-	context := data
-	var current interface{}
-	for index, key := range parts {
-		current = context[key]
-		switch current.(type) {
-		case nil:
-			return "", fmt.Errorf("could not find key '%v'", key)
-		case map[string]interface{}:
-			context = current.(map[string]interface{})
-			// continue with the next path component
-		default:
-			if index != len(parts)-1 {
-				return "", fmt.Errorf("could not find %v in JSON", path)
-			}
-			// we have reached the last path element, keep that value
-			break
-		}
+
+	query := jsonq.NewQuery(data)
+	value, err := query.Interface(parts...)
+	if err != nil {
+		return "", err
 	}
 
-	// value to string
-	return fmt.Sprintf("%v", current), nil
+	// converts int, float, bool, etc to string
+	return fmt.Sprintf("%v", value), nil
 }
 
 // CSV parses the payload as a CSV file and returns the value from `colIndex`
