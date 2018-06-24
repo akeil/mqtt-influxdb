@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"os/user"
 	"path/filepath"
+	"syscall"
 )
 
 // AppName is the application name
@@ -29,9 +30,10 @@ var Commit = ""
 func Run(configPath string) error {
 	LogInfo("Starting %v Version %v (ref %v)", AppName, Version, Commit)
 
-	// setup channel to receive SIGINT (ctrl+c)
+	// setup channel to receive SIGINT (ctrl+c) or SIGHUP (reload)
 	s := make(chan os.Signal, 1)
-	signal.Notify(s, os.Interrupt)
+	signal.Notify(s, syscall.SIGINT)
+	signal.Notify(s, syscall.SIGHUP)
 
 	config, subscriptions, err := readSetup(configPath)
 	if err != nil {
@@ -52,13 +54,25 @@ func Run(configPath string) error {
 	}
 	defer stop()
 
-	// wait for SIGINT
-	_ = <-s
+	// wait for SIGHUP or SIGINT
+	for sig := range s {
+		LogInfo("got signal %v", sig)
+		if sig == syscall.SIGHUP {
+			err = reload(configPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			// assume SIGINT
+			break
+		}
+	}
 	return nil
 }
 
 // relaod configuration/subscriptions and re-subscribe to MQTT
 func reload(configPath string) error {
+	LogInfo("reloading...")
 	config, subscriptions, err := readSetup(configPath)
 	if err != nil {
 		return err

@@ -73,6 +73,7 @@ func unsubscribe() {
 			mqttClient.Unsubscribe(sub.Topic)
 		}
 	}
+	mqttSubscriptions = make([]Subscription, 0)
 }
 
 func registerSubscriptions(subscriptions []Subscription) {
