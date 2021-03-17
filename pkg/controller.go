@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"os/user"
@@ -155,7 +154,7 @@ func removePidFile(path string) {
 }
 
 func readPidFile(path string) (int, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}
@@ -250,7 +249,7 @@ func readSubscriptions() ([]Subscription, error) {
 	}
 
 	for _, dirname := range dirnames {
-		files, err := ioutil.ReadDir(dirname)
+		files, err := os.ReadDir(dirname)
 		if os.IsNotExist(err) {
 			continue
 		} else if err != nil {

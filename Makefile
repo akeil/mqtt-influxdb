@@ -23,6 +23,10 @@ arm:
 install:
 	go install $(BINARY)
 
+fmt:
+	gofmt -w pkg/*.go
+	gofmt -w */*/*.go
+
 test:
 	go test $(PKG)
 
